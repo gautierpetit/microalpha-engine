@@ -18,6 +18,7 @@ docs/research/*
 # Build
 build/
 dist/
+*.egg-info/
 
 # C++
 *.o
@@ -27,3 +28,6 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# VS Code
+.vscode/

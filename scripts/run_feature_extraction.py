@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+
+from microalpha.io import LobsterPaths, LobsterConfig, load_lobster, compute_tie_rate, time_stats
+
+
+def main() -> None:
+    msg_path = Path(r"data\raw\LOBSTER_SampleFile_AAPL_2012-06-21_10\AAPL_2012-06-21_34200000_57600000_message_10.csv")
+    ob_path = Path(r"data\raw\LOBSTER_SampleFile_AAPL_2012-06-21_10\AAPL_2012-06-21_34200000_57600000_orderbook_10.csv")
+
+    paths = LobsterPaths(message_csv=msg_path, orderbook_csv=ob_path)
+    cfg = LobsterConfig(levels=10, price_scale=10_000)
+
+    data = load_lobster(paths, cfg=cfg, validate=True)
+
+    print("\n=== LOBSTER LOAD OK ===")
+    print(f"Events: {len(data.t):,}")
+    print(f"Levels: {data.bid_prices.shape[1]}")
+    print(f"Midprice: min={data.midprice.min():.4f}, max={data.midprice.max():.4f}")
+    print(f"Spread:   min={data.spread.min():.6f}, p50={np.median(data.spread):.6f}, p95={np.percentile(data.spread,95):.6f}")
+
+    ts = time_stats(data.t)
+    print("\n=== TIME STATS ===")
+    for k, v in ts.items():
+        if "dt_" in k or "duration" in k or "t_" in k:
+            print(f"{k:>12}: {v:.6f}")
+        else:
+            print(f"{k:>12}: {int(v):,}")
+
+    for H in (500, 1000):
+        p_tie, n_eff = compute_tie_rate(data.midprice, H)
+        print(f"\n=== TIE RATE (H={H}) ===")
+        print(f"n_effective: {n_eff:,}")
+        print(f"p_tie:       {p_tie:.2%}")
+        # Report implied drop if using binary-drop-ties
+        print(f"binary-drop-ties would drop ~{p_tie:.2%} of samples")
+
+    print("\nDone.\n")
+
+
+if __name__ == "__main__":
+    main()

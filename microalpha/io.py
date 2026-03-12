@@ -88,7 +88,7 @@ def load_lobster(
     Load and validate aligned LOBSTER message + orderbook CSVs.
     Returns numpy arrays suitable for C++ feature engine.
     """
-    cfg = cfg or LobsterConfig()
+    cfg = cfg or LobsterConfig() #TODO:change to if cfg is None
 
     msg = _read_lobster_message_csv(paths.message_csv)
     ob = _read_lobster_orderbook_csv(paths.orderbook_csv, cfg.levels)
@@ -110,8 +110,8 @@ def load_lobster(
     # Convert orderbook to arrays
     L = cfg.levels
     # Ask/Bid arrays in shape (N, L)
-    ask_prices = np.column_stack([ob[f"ask_price_{i}"].to_numpy() for i in range(1, L + 1)]).astype(cfg.dtype_float)
-    ask_sizes = np.column_stack([ob[f"ask_size_{i}"].to_numpy() for i in range(1, L + 1)]).astype(cfg.dtype_float)
+    ask_prices = np.column_stack([ob[f"ask_price_{i}"].to_numpy() for i in range(1, L + 1)]).astype(cfg.dtype_float) #TODO: .astype after column stack may create extra copy; consider dtype in to_numpy() directly
+    ask_sizes = np.column_stack([ob[f"ask_size_{i}"].to_numpy() for i in range(1, L + 1)]).astype(cfg.dtype_float) #TODO:ask and bid sizes are cast to float, integer would be more natural
     bid_prices = np.column_stack([ob[f"bid_price_{i}"].to_numpy() for i in range(1, L + 1)]).astype(cfg.dtype_float)
     bid_sizes = np.column_stack([ob[f"bid_size_{i}"].to_numpy() for i in range(1, L + 1)]).astype(cfg.dtype_float)
 
@@ -133,7 +133,7 @@ def load_lobster(
     midprice = 0.5 * (bid1 + ask1)
     spread = ask1 - bid1
 
-    if validate:
+    if validate: #TODO: split validation from loading ?
         # Spread sanity
         if np.any(spread < -1e-12):
             bad = np.where(spread < -1e-12)[0][:5]
@@ -156,7 +156,7 @@ def load_lobster(
             bad = np.where(np.diff(ask_prices, axis=1) < -1e-12)[0][:5]
             raise ValueError(f"Ask levels not non-decreasing at some rows (examples: {bad.tolist()}).")
 
-    return LobsterData(
+    return LobsterData( #TODO: No explicit shape validation before constructing
         t=t,
         event_type=event_type,
         order_id=order_id,

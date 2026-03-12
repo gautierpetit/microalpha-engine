@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from microalpha.io import LobsterPaths, LobsterConfig, load_lobster, compute_tie_rate, time_stats
+from microalpha.labels import create_directional_labels, summarize_labels
 
 
 def main() -> None:
@@ -22,6 +24,12 @@ def main() -> None:
     print(f"Midprice: min={data.midprice.min():.4f}, max={data.midprice.max():.4f}")
     print(f"Spread:   min={data.spread.min():.6f}, p50={np.median(data.spread):.6f}, p95={np.percentile(data.spread,95):.6f}")
 
+    plt.plot(data.t/3600, data.midprice)
+    plt.xlabel("Time (hours)")
+    plt.ylabel("Midprice")
+    plt.title("Midprice Over Time")
+    plt.show()
+
     ts = time_stats(data.t)
     print("\n=== TIME STATS ===")
     for k, v in ts.items():
@@ -37,6 +45,22 @@ def main() -> None:
         print(f"p_tie:       {p_tie:.2%}")
         # Report implied drop if using binary-drop-ties
         print(f"binary-drop-ties would drop ~{p_tie:.2%} of samples")
+
+    label_result = create_directional_labels(data.midprice, horizon=500, label_mode="binary_drop_ties")
+
+    plt.hist(label_result.delta, bins=200)
+    plt.xlabel("Forward Midprice Change")
+    plt.ylabel("Frequency")
+    plt.title(f"Distribution of Forward Midprice Changes H={label_result.horizon}")
+    plt.show()
+
+    print("\n=== LABEL SUMMARY (H=500, binary_drop_ties) ===")
+    summary = summarize_labels(label_result)
+    for k, v in summary.items():
+        if isinstance(v, float):
+            print(f"{k:>15}: {v:.6f}")
+        else:
+            print(f"{k:>15}: {v}")
 
     print("\nDone.\n")
 

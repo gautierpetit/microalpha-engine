@@ -6,7 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from microalpha.io import LobsterPaths, LobsterConfig, load_lobster, compute_tie_rate, time_stats
-from microalpha.labels import create_directional_labels, summarize_labels
+from microalpha.labels import create_directional_labels, summarize_labels, align_features_with_labels
+from microalpha.features import compute_features, FEATURE_NAMES
 
 
 def main() -> None:
@@ -61,6 +62,29 @@ def main() -> None:
             print(f"{k:>15}: {v:.6f}")
         else:
             print(f"{k:>15}: {v}")
+    
+    #######
+    X_raw = compute_features(
+        data.bid_prices,
+        data.bid_sizes,
+        data.ask_prices,
+        data.ask_sizes,
+    )
+
+    print("\n=== FEATURE MATRIX ===")
+    print(f"shape: {X_raw.shape}")
+    for i, name in enumerate(FEATURE_NAMES):
+        col = X_raw[:, i]
+        print(
+            f"{name:>24}: "
+            f"min={col.min():.6f}, "
+            f"p005={np.percentile(col, 5):.6f}, "
+            f"p50={np.median(col):.6f}, "
+            f"p95={np.percentile(col, 95):.6f}, "
+            f"max={col.max():.6f}"
+        )
+
+    X, y = align_features_with_labels(X_raw, label_result)
 
     print("\nDone.\n")
 

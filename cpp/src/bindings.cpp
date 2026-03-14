@@ -4,6 +4,7 @@
 #include <pybind11/pybind11.h>
 
 #include <sstream>
+#include <format>
 #include <stdexcept>
 #include <vector>
 
@@ -16,9 +17,9 @@ void validate_2d_array(
     const char* name
 ) {
     if (arr.ndim() != 2) {
-        std::ostringstream oss; //FIXME: old code, should we use fmt or something else?
-        oss << name << " must be 2D, got ndim=" << arr.ndim();
-        throw std::invalid_argument(oss.str());
+        throw std::invalid_argument(
+            std::format("{} must be 2D, got ndim={}", name, arr.ndim())
+        );
     }
 }
 
@@ -29,12 +30,13 @@ void validate_same_shape(
     const char* b_name
 ) {
     if (a.shape(0) != b.shape(0) || a.shape(1) != b.shape(1)) {
-        std::ostringstream oss; //FIXME: old code, should we use std::format or something else?
-        oss << "Shape mismatch: " << a_name << " has shape ("
-            << a.shape(0) << ", " << a.shape(1) << "), while "
-            << b_name << " has shape ("
-            << b.shape(0) << ", " << b.shape(1) << ")";
-        throw std::invalid_argument(oss.str());
+        throw std::invalid_argument(
+            std::format(
+                "Shape mismatch: {} has shape ({}, {}), while {} has shape ({}, {})",
+                a_name, a.shape(0), a.shape(1),
+                b_name, b.shape(0), b.shape(1)
+            )
+        );
     }
 }
 
@@ -58,13 +60,7 @@ py::array_t<double> py_compute_features_series(
     const std::size_t n_rows = static_cast<std::size_t>(bid_prices.shape(0));
     const std::size_t levels = static_cast<std::size_t>(bid_prices.shape(1));
 
-    // FIXME: useless variables here ?
-    auto bp = bid_prices.unchecked<2>();
-    auto bs = bid_sizes.unchecked<2>();
-    auto ap = ask_prices.unchecked<2>();
-    auto as = ask_sizes.unchecked<2>();
-
-    // Input arrays are guaranteed contiguous by py::array::c_style | forcecast,
+    // Input arrays are guaranteed contiguous by py::array::c_style |forcecast,
     // so we can pass raw data pointers safely.
     const double* bid_prices_ptr = static_cast<const double*>(bid_prices.data());
     const double* bid_sizes_ptr = static_cast<const double*>(bid_sizes.data());
@@ -81,14 +77,14 @@ py::array_t<double> py_compute_features_series(
     );
 
     py::array_t<double> out({result.n_rows, result.n_cols});
-    auto out_mut = out.mutable_unchecked<2>();
-
-    //FIXME: optimize by removing nested loop
-    for (std::size_t i = 0; i < result.n_rows; ++i) {
-        for (std::size_t j = 0; j < result.n_cols; ++j) {
-            out_mut(i, j) = result.data[i * result.n_cols + j];
-        }
-    }
+    double* out_ptr = static_cast<double*>(out.mutable_data());
+    // result.data is already a flat row-major buffer compatible with NumPy
+    // so we can copy the entire block directly
+    std::copy(
+        result.data.begin(),
+        result.data.end(),
+        out_ptr
+    );
 
     return out;
 }

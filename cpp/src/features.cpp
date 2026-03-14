@@ -39,7 +39,10 @@ inline double compute_best_level_ofi(
     double delta_bid = 0.0;
     if (bid_p_curr > bid_p_prev) {
         delta_bid = bid_q_curr;
-    } else if (bid_p_curr == bid_p_prev) { //FIXME: exact comparison of doubles, should we use some epsilon ?
+    } else if (bid_p_curr == bid_p_prev) {
+        // Exact comparison is intentional here:
+        // LOB prices come from discrete tick-grid data, so equality of best quotes
+        // should be treated as an exact state comparison, not a fuzzy float comparison.
         delta_bid = bid_q_curr - bid_q_prev;
     } else {  // bid_p_curr < bid_p_prev
         delta_bid = -bid_q_prev;
@@ -48,7 +51,8 @@ inline double compute_best_level_ofi(
     double delta_ask = 0.0;
     if (ask_p_curr < ask_p_prev) {
         delta_ask = ask_q_curr;
-    } else if (ask_p_curr == ask_p_prev) { //FIXME: exact comparison of doubles, should we use some epsilon ?
+    } else if (ask_p_curr == ask_p_prev) {
+        // Same comment about exact comparison applies here as well.
         delta_ask = ask_q_curr - ask_q_prev;
     } else {  // ask_p_curr > ask_p_prev
         delta_ask = -ask_q_prev;
@@ -91,7 +95,6 @@ inline double compute_spread(
     std::size_t t,
     std::size_t levels
 ) {
-    (void)levels;//FIXME: should be removed
     const double bid_p = bid_prices[idx(t, 0, levels)];
     const double ask_p = ask_prices[idx(t, 0, levels)];
     return ask_p - bid_p;

@@ -65,10 +65,12 @@ def main() -> None:
     
     #######
     X_raw = compute_features(
-        data.bid_prices,
-        data.bid_sizes,
-        data.ask_prices,
-        data.ask_sizes,
+        bid_prices=data.bid_prices,
+        bid_sizes=data.bid_sizes,
+        ask_prices=data.ask_prices,
+        ask_sizes=data.ask_sizes,
+        midprice=data.midprice,
+        timestamps=data.t,
     )
 
     print("\n=== FEATURE MATRIX ===")

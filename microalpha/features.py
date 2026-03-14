@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
+import pandas as pd
 
 from microalpha import _cpp
 
 
-FEATURE_NAMES = [
+CORE_FEATURE_NAMES = [
     "ofi_best",
     "queue_imbalance_best",
     "depth_imbalance",
@@ -13,15 +16,30 @@ FEATURE_NAMES = [
     "microprice_deviation",
 ]
 
+TEMPORAL_FEATURE_NAMES = [
+    "ofi_roll_sum_50",
+    "event_intensity_1s",
+    "midprice_vol_50",
+]
 
-def compute_features(
+FEATURE_NAMES = CORE_FEATURE_NAMES + TEMPORAL_FEATURE_NAMES
+
+
+@dataclass(frozen=True)
+class TemporalFeatureConfig:
+    ofi_window: int = 50
+    vol_window: int = 50
+    intensity_window: str = "1s"
+
+
+def compute_core_features(
     bid_prices: np.ndarray,
     bid_sizes: np.ndarray,
     ask_prices: np.ndarray,
     ask_sizes: np.ndarray,
 ) -> np.ndarray:
     """
-    Compute event-level microstructure features via C++ backend.
+    Compute event-level microstructure core features via the C++ backend.
 
     Returns
     -------
@@ -35,3 +53,138 @@ def compute_features(
         np.asarray(ask_sizes, dtype=np.float64, order="C"),
     )
     return np.asarray(X, dtype=np.float64)
+
+
+def augment_temporal_features(
+    X_core: np.ndarray,
+    midprice: np.ndarray,
+    timestamps: np.ndarray,
+    cfg: TemporalFeatureConfig | None = None,
+) -> np.ndarray:
+    """
+    Add temporal / rolling features on top of the core C++ feature matrix.
+
+    Added features:
+    - rolling OFI sum over last `ofi_window` events
+    - event intensity over last `intensity_window` clock-time window
+    - rolling midprice volatility over last `vol_window` events
+      computed on midprice deltas, not levels
+
+    Parameters
+    ----------
+    X_core : np.ndarray
+        Core feature matrix of shape (N, 5).
+    midprice : np.ndarray
+        Midprice series of shape (N,).
+    timestamps : np.ndarray
+        Event timestamps in seconds from midnight, shape (N,).
+    cfg : TemporalFeatureConfig | None
+        Temporal feature configuration.
+
+    Returns
+    -------
+    np.ndarray
+        Augmented feature matrix of shape (N, 8).
+    """
+    cfg = cfg or TemporalFeatureConfig()
+
+    _validate_temporal_inputs(X_core, midprice, timestamps)
+
+    # 1) Rolling OFI sum over event window
+    ofi_series = pd.Series(X_core[:, 0], copy=False)
+    ofi_roll_sum = (
+        ofi_series.rolling(window=cfg.ofi_window, min_periods=cfg.ofi_window)
+        .sum()
+        .fillna(0.0)
+        .to_numpy(dtype=np.float64)
+    )
+
+    # 2) Event intensity over rolling clock-time window
+    event_df = pd.DataFrame({"timestamp": timestamps})
+    event_df.index = pd.to_datetime(event_df["timestamp"], unit="s")
+    event_intensity = (
+        event_df["timestamp"]
+        .rolling(window=cfg.intensity_window)
+        .count()
+        .to_numpy(dtype=np.float64)
+    )
+
+    # 3) Rolling midprice volatility over event window
+    # Use midprice deltas, not levels
+    mid_delta = np.diff(midprice, prepend=midprice[0])
+    mid_delta_series = pd.Series(mid_delta, copy=False)
+    midprice_vol = (
+        mid_delta_series.rolling(window=cfg.vol_window, min_periods=cfg.vol_window)
+        .std()
+        .fillna(0.0)
+        .to_numpy(dtype=np.float64)
+    )
+
+    X_aug = np.column_stack(
+        [
+            X_core,
+            ofi_roll_sum,
+            event_intensity,
+            midprice_vol,
+        ]
+    )
+
+    return X_aug
+
+
+def compute_features(
+    bid_prices: np.ndarray,
+    bid_sizes: np.ndarray,
+    ask_prices: np.ndarray,
+    ask_sizes: np.ndarray,
+    midprice: np.ndarray,
+    timestamps: np.ndarray,
+    cfg: TemporalFeatureConfig | None = None,
+) -> np.ndarray:
+    """
+    Full feature pipeline:
+    1. compute core event-level features in C++
+    2. augment with temporal features in Python
+
+    Returns
+    -------
+    np.ndarray
+        Feature matrix of shape (N, 8).
+    """
+    X_core = compute_core_features(
+        bid_prices=bid_prices,
+        bid_sizes=bid_sizes,
+        ask_prices=ask_prices,
+        ask_sizes=ask_sizes,
+    )
+
+    X = augment_temporal_features(
+        X_core=X_core,
+        midprice=midprice,
+        timestamps=timestamps,
+        cfg=cfg,
+    )
+    return X
+
+
+def _validate_temporal_inputs(
+    X_core: np.ndarray,
+    midprice: np.ndarray,
+    timestamps: np.ndarray,
+) -> None:
+    if X_core.ndim != 2:
+        raise ValueError(f"X_core must be 2D, got shape {X_core.shape}")
+    if midprice.ndim != 1:
+        raise ValueError(f"midprice must be 1D, got shape {midprice.shape}")
+    if timestamps.ndim != 1:
+        raise ValueError(f"timestamps must be 1D, got shape {timestamps.shape}")
+
+    n = X_core.shape[0]
+    if midprice.shape[0] != n:
+        raise ValueError(
+            f"midprice length mismatch: expected {n}, got {midprice.shape[0]}"
+        )
+    if timestamps.shape[0] != n:
+        raise ValueError(
+            f"timestamps length mismatch: expected {n}, got {timestamps.shape[0]}"
+        )

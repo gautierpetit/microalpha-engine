@@ -27,3 +27,14 @@ if(MSVC)
 else()
     target_compile_options(_cpp PRIVATE -O3 -Wall -Wextra -Wpedantic)
 endif()
+
+# Automatically copy built extension into the Python package directory
+set(PYTHON_PACKAGE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../microalpha")
+
+add_custom_command(
+    TARGET _cpp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:_cpp>
+            "${PYTHON_PACKAGE_DIR}/$<TARGET_FILE_NAME:_cpp>"
+    COMMENT "Copying compiled extension into microalpha package"
+)

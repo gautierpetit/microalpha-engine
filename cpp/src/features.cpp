@@ -6,11 +6,11 @@
 namespace microalpha {
 namespace {
 
-inline std::size_t idx(std::size_t row, std::size_t col, std::size_t n_cols) {
+inline std::size_t idx(const std::size_t row, const std::size_t col, const std::size_t n_cols) {
     return row * n_cols + col;
 }
 
-inline double safe_divide(double num, double den) {
+inline double safe_divide(const double num, const double den) {
     if (std::abs(den) < 1e-15) {
         return 0.0;
     }
@@ -22,10 +22,9 @@ inline double compute_best_level_ofi(
     const double* bid_sizes,
     const double* ask_prices,
     const double* ask_sizes,
-    std::size_t t,
-    std::size_t levels
+    const std::size_t t,
+    const std::size_t levels
 ) {
-    // Best level only
     const double bid_p_prev = bid_prices[idx(t - 1, 0, levels)];
     const double bid_q_prev = bid_sizes[idx(t - 1, 0, levels)];
     const double ask_p_prev = ask_prices[idx(t - 1, 0, levels)];
@@ -61,27 +60,44 @@ inline double compute_best_level_ofi(
     return delta_bid - delta_ask;
 }
 
+inline double compute_best_level_ofi_normalized(
+    const double ofi_best,
+    const double* bid_sizes,
+    const double* ask_sizes,
+    const std::size_t t,
+    const std::size_t levels
+) {
+    const double bid_q = bid_sizes[idx(t, 0, levels)];
+    const double ask_q = ask_sizes[idx(t, 0, levels)];
+    return safe_divide(ofi_best, bid_q + ask_q);
+}
+
 inline double compute_queue_imbalance_best(
     const double* bid_sizes,
     const double* ask_sizes,
-    std::size_t t,
-    std::size_t levels
+    const std::size_t t,
+    const std::size_t levels
 ) {
     const double bid_q = bid_sizes[idx(t, 0, levels)];
     const double ask_q = ask_sizes[idx(t, 0, levels)];
     return safe_divide(bid_q, bid_q + ask_q);
 }
 
-inline double compute_depth_imbalance(
+inline double compute_depth_imbalance_k(
     const double* bid_sizes,
     const double* ask_sizes,
-    std::size_t t,
-    std::size_t levels
+    const std::size_t t,
+    const std::size_t levels,
+    const std::size_t k
 ) {
+    if (k == 0 || k > levels) {
+        throw std::invalid_argument("Invalid depth imbalance level k");
+    }
+
     double bid_sum = 0.0;
     double ask_sum = 0.0;
 
-    for (std::size_t level = 0; level < levels; ++level) {
+    for (std::size_t level = 0; level < k; ++level) {
         bid_sum += bid_sizes[idx(t, level, levels)];
         ask_sum += ask_sizes[idx(t, level, levels)];
     }
@@ -92,8 +108,8 @@ inline double compute_depth_imbalance(
 inline double compute_spread(
     const double* bid_prices,
     const double* ask_prices,
-    std::size_t t,
-    std::size_t levels
+    const std::size_t t,
+    const std::size_t levels
 ) {
     const double bid_p = bid_prices[idx(t, 0, levels)];
     const double ask_p = ask_prices[idx(t, 0, levels)];
@@ -105,8 +121,8 @@ inline double compute_microprice_deviation(
     const double* bid_sizes,
     const double* ask_prices,
     const double* ask_sizes,
-    std::size_t t,
-    std::size_t levels
+    const std::size_t t,
+    const std::size_t levels
 ) {
     const double bid_p = bid_prices[idx(t, 0, levels)];
     const double ask_p = ask_prices[idx(t, 0, levels)];
@@ -126,8 +142,8 @@ FeatureMatrix compute_features_series(
     const double* bid_sizes,
     const double* ask_prices,
     const double* ask_sizes,
-    std::size_t n_rows,
-    std::size_t levels
+    const std::size_t n_rows,
+    const std::size_t levels
 ) {
     if (bid_prices == nullptr || bid_sizes == nullptr || ask_prices == nullptr || ask_sizes == nullptr) {
         throw std::invalid_argument("Null input pointer passed to compute_features_series");
@@ -135,39 +151,63 @@ FeatureMatrix compute_features_series(
     if (n_rows == 0) {
         throw std::invalid_argument("n_rows must be > 0");
     }
-    if (levels == 0) {
-        throw std::invalid_argument("levels must be > 0");
+    if (levels < 10) {
+        throw std::invalid_argument("levels must be >= 10 for this feature set");
     }
 
-    constexpr std::size_t n_features = 5;
+    constexpr std::size_t n_features = 8;
+
     FeatureMatrix out;
     out.n_rows = n_rows;
     out.n_cols = n_features;
     out.data.resize(n_rows * n_features, 0.0);
 
-    // t = 0 has no previous row, so OFI is left at 0.0 by construction.
     for (std::size_t t = 0; t < n_rows; ++t) {
         const std::size_t base = t * n_features;
 
-        double ofi = 0.0;
+        double ofi_best = 0.0;
         if (t > 0) {
-            ofi = compute_best_level_ofi(
+            ofi_best = compute_best_level_ofi(
                 bid_prices, bid_sizes, ask_prices, ask_sizes, t, levels
             );
         }
 
-        const double qi = compute_queue_imbalance_best(bid_sizes, ask_sizes, t, levels);
-        const double di = compute_depth_imbalance(bid_sizes, ask_sizes, t, levels);
-        const double spr = compute_spread(bid_prices, ask_prices, t, levels);
-        const double mpd = compute_microprice_deviation(
+        const double ofi_best_norm = compute_best_level_ofi_normalized(
+            ofi_best, bid_sizes, ask_sizes, t, levels
+        );
+
+        const double qi_best = compute_queue_imbalance_best(
+            bid_sizes, ask_sizes, t, levels
+        );
+
+        const double di_3 = compute_depth_imbalance_k(
+            bid_sizes, ask_sizes, t, levels, 3
+        );
+
+        const double di_5 = compute_depth_imbalance_k(
+            bid_sizes, ask_sizes, t, levels, 5
+        );
+
+        const double di_10 = compute_depth_imbalance_k(
+            bid_sizes, ask_sizes, t, levels, 10
+        );
+
+        const double spread = compute_spread(
+            bid_prices, ask_prices, t, levels
+        );
+
+        const double microprice_dev = compute_microprice_deviation(
             bid_prices, bid_sizes, ask_prices, ask_sizes, t, levels
         );
 
-        out.data[base + 0] = ofi;
-        out.data[base + 1] = qi;
-        out.data[base + 2] = di;
-        out.data[base + 3] = spr;
-        out.data[base + 4] = mpd;
+        out.data[base + 0] = ofi_best;
+        out.data[base + 1] = ofi_best_norm;
+        out.data[base + 2] = qi_best;
+        out.data[base + 3] = di_3;
+        out.data[base + 4] = di_5;
+        out.data[base + 5] = di_10;
+        out.data[base + 6] = spread;
+        out.data[base + 7] = microprice_dev;
     }
 
     return out;

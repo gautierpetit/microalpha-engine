@@ -10,14 +10,20 @@ from microalpha import _cpp
 
 CORE_FEATURE_NAMES = [
     "ofi_best",
+    "ofi_best_norm",
     "queue_imbalance_best",
-    "depth_imbalance",
+    "depth_imbalance_3",
+    "depth_imbalance_5",
+    "depth_imbalance_10",
     "spread",
     "microprice_deviation",
 ]
 
 TEMPORAL_FEATURE_NAMES = [
     "ofi_roll_sum_50",
+    "ofi_best_norm_roll_sum_10",
+    "ofi_best_norm_roll_sum_50",
+    "ofi_best_norm_roll_sum_100",
     "event_intensity_1s",
     "midprice_vol_50",
 ]
@@ -90,16 +96,39 @@ def augment_temporal_features(
 
     _validate_temporal_inputs(X_core, midprice, timestamps)
 
-    # 1) Rolling OFI sum over event window
-    ofi_series = pd.Series(X_core[:, 0], copy=False)
-    ofi_roll_sum = (
-        ofi_series.rolling(window=cfg.ofi_window, min_periods=cfg.ofi_window)
+    # Raw OFI rolling sum
+    ofi_raw_series = pd.Series(X_core[:, 0], copy=False)
+    ofi_roll_sum_50 = (
+        ofi_raw_series.rolling(window=50, min_periods=50)
+        .sum()
+        .fillna(0.0)
+        .to_numpy(dtype=np.float64)
+    )
+   
+    # Normalized OFI multi-scale rolling sums
+    ofi_norm_series = pd.Series(X_core[:, 1], copy=False)
+    ofi_best_norm_roll_sum_10 = (
+        ofi_norm_series.rolling(window=10, min_periods=10)
         .sum()
         .fillna(0.0)
         .to_numpy(dtype=np.float64)
     )
 
-    # 2) Event intensity over rolling clock-time window
+    ofi_best_norm_roll_sum_50 = (
+        ofi_norm_series.rolling(window=50, min_periods=50)
+        .sum()
+        .fillna(0.0)
+        .to_numpy(dtype=np.float64)
+    )
+
+    ofi_best_norm_roll_sum_100 = (
+        ofi_norm_series.rolling(window=100, min_periods=100)
+        .sum()
+        .fillna(0.0)
+        .to_numpy(dtype=np.float64)
+    )    
+
+    # Event intensity over rolling clock-time window
     event_df = pd.DataFrame({"timestamp": timestamps})
     event_df.index = pd.to_datetime(event_df["timestamp"], unit="s")
     event_intensity = (
@@ -109,7 +138,7 @@ def augment_temporal_features(
         .to_numpy(dtype=np.float64)
     )
 
-    # 3) Rolling midprice volatility over event window
+    # Rolling midprice volatility over event window
     # Use midprice deltas, not levels
     mid_delta = np.diff(midprice, prepend=midprice[0])
     mid_delta_series = pd.Series(mid_delta, copy=False)
@@ -123,7 +152,10 @@ def augment_temporal_features(
     X_aug = np.column_stack(
         [
             X_core,
-            ofi_roll_sum,
+            ofi_roll_sum_50,
+            ofi_best_norm_roll_sum_10,
+            ofi_best_norm_roll_sum_50,
+            ofi_best_norm_roll_sum_100,
             event_intensity,
             midprice_vol,
         ]

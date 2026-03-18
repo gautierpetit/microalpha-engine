@@ -22,10 +22,13 @@ struct FeatureMatrix {
  *
  * Output columns:
  *   0 -> ofi_best
- *   1 -> queue_imbalance_best
- *   2 -> depth_imbalance_levels
- *   3 -> spread
- *   4 -> microprice_deviation
+ *   1 -> ofi_best_norm
+ *   2 -> queue_imbalance_best
+ *   3 -> depth_imbalance_3
+ *   4 -> depth_imbalance_5
+ *   5 -> depth_imbalance_10
+ *   6 -> spread
+ *   7 -> microprice_deviation
  */
 FeatureMatrix compute_features_series(
     const double* bid_prices,

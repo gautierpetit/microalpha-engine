@@ -93,7 +93,7 @@ def build_logistic_model(
     - Standardization is mandatory due to large feature scale differences.
     - class_weight='balanced' is NOT used because class imbalance is mild.
     """
-    model = Pipeline(
+    return Pipeline(
         steps=[
             ("scaler", StandardScaler()),
             (
@@ -108,33 +108,32 @@ def build_logistic_model(
             ),
         ]
     )
-    return model
 
 
 def build_mlp_model(
+    hidden_layer_sizes: tuple[int, ...] = (32,),
+    max_iter: int = 200,
+    alpha: float = 1e-4,
+    learning_rate_init: float = 1e-3,
+    batch_size: int = 256,
     random_state: int = 42,
 ) -> Pipeline:
     """
     Build standardized small MLP pipeline.
-
-    Notes
-    -----
-    - Keeps architecture intentionally modest for v1.
-    - Early stopping helps prevent unnecessary overfitting and long training.
     """
-    model = Pipeline(
+    return Pipeline(
         steps=[
             ("scaler", StandardScaler()),
             (
                 "clf",
                 MLPClassifier(
-                    hidden_layer_sizes=(32,),
+                    hidden_layer_sizes=hidden_layer_sizes,
                     activation="relu",
                     solver="adam",
-                    alpha=1e-4,
-                    batch_size=256,
-                    learning_rate_init=1e-3,
-                    max_iter=200,
+                    alpha=alpha,
+                    batch_size=batch_size,
+                    learning_rate_init=learning_rate_init,
+                    max_iter=max_iter,
                     early_stopping=True,
                     validation_fraction=0.1,
                     n_iter_no_change=10,
@@ -143,14 +142,20 @@ def build_mlp_model(
             ),
         ]
     )
-    return model
 
 
 def train_model(
     X_train: np.ndarray,
     y_train: np.ndarray,
     model_name: ModelName,
-    random_state: int = 42,
+    *,
+    logistic_random_state: int = 42,
+    mlp_random_state: int = 42,
+    mlp_hidden_layer_sizes: tuple[int, ...] = (32,),
+    mlp_max_iter: int = 200,
+    mlp_alpha: float = 1e-4,
+    mlp_learning_rate_init: float = 1e-3,
+    mlp_batch_size: int = 256,
 ):
     """
     Train a model by name.
@@ -163,8 +168,6 @@ def train_model(
         Training labels.
     model_name : {"logistic", "mlp"}
         Model selection.
-    random_state : int
-        Random seed used where relevant.
 
     Returns
     -------
@@ -174,9 +177,18 @@ def train_model(
     _validate_X_y(X_train, y_train)
 
     if model_name == "logistic":
-        model = build_logistic_model(random_state=random_state)
+        model = build_logistic_model(random_state=logistic_random_state)
+
     elif model_name == "mlp":
-        model = build_mlp_model(random_state=random_state)
+        model = build_mlp_model(
+            hidden_layer_sizes=mlp_hidden_layer_sizes,
+            max_iter=mlp_max_iter,
+            alpha=mlp_alpha,
+            learning_rate_init=mlp_learning_rate_init,
+            batch_size=mlp_batch_size,
+            random_state=mlp_random_state,
+        )
+
     else:
         raise ValueError(
             f"Unsupported model_name={model_name!r}. Expected 'logistic' or 'mlp'."
@@ -186,10 +198,7 @@ def train_model(
     return model
 
 
-def predict_probabilities(
-    model,
-    X: np.ndarray,
-) -> np.ndarray:
+def predict_probabilities(model, X: np.ndarray) -> np.ndarray:
     """
     Return positive-class probabilities for binary classification.
     """
@@ -206,10 +215,7 @@ def predict_probabilities(
     return proba[:, 1]
 
 
-def predict_classes(
-    model,
-    X: np.ndarray,
-) -> np.ndarray:
+def predict_classes(model, X: np.ndarray) -> np.ndarray:
     """
     Return predicted class labels.
     """

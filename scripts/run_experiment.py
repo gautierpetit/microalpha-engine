@@ -90,7 +90,7 @@ def main() -> None:
         X_train=split.X_train,
         y_train=split.y_train,
         model_name="logistic",
-        random_state=cfg.models.logistic.random_state,
+        logistic_random_state=cfg.models.logistic.random_state,
     )
     logger.info("Trained logistic regression")
 
@@ -98,7 +98,12 @@ def main() -> None:
         X_train=split.X_train,
         y_train=split.y_train,
         model_name="mlp",
-        random_state=cfg.models.mlp.random_state,
+        mlp_random_state=cfg.models.mlp.random_state,
+        mlp_hidden_layer_sizes=tuple(cfg.models.mlp.hidden_layer_sizes),
+        mlp_max_iter=cfg.models.mlp.max_iter,
+        mlp_alpha=cfg.models.mlp.alpha,
+        mlp_learning_rate_init=cfg.models.mlp.learning_rate_init,
+        mlp_batch_size=cfg.models.mlp.batch_size,
     )
     logger.info("Trained MLP")
 

@@ -15,7 +15,7 @@ data/processed/*
 
 # Research
 docs/research/*
-artifacts/*
+artifacts/
 
 # Build
 build/

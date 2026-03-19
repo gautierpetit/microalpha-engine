@@ -94,24 +94,24 @@ def main() -> None:
     )
     logger.info("Trained logistic regression")
 
-    mlp_model = train_model(
+    hist_gbdt_model = train_model(
         X_train=split.X_train,
         y_train=split.y_train,
-        model_name="mlp",
-        mlp_random_state=cfg.models.mlp.random_state,
-        mlp_hidden_layer_sizes=tuple(cfg.models.mlp.hidden_layer_sizes),
-        mlp_max_iter=cfg.models.mlp.max_iter,
-        mlp_alpha=cfg.models.mlp.alpha,
-        mlp_learning_rate_init=cfg.models.mlp.learning_rate_init,
-        mlp_batch_size=cfg.models.mlp.batch_size,
+        model_name="hist_gbdt",
+        hist_gbdt_random_state=cfg.models.hist_gbdt.random_state,
+        hist_gbdt_learning_rate=cfg.models.hist_gbdt.learning_rate,
+        hist_gbdt_max_iter=cfg.models.hist_gbdt.max_iter,
+        hist_gbdt_max_leaf_nodes=cfg.models.hist_gbdt.max_leaf_nodes,
+        hist_gbdt_min_samples_leaf=cfg.models.hist_gbdt.min_samples_leaf,
+        hist_gbdt_l2_regularization=cfg.models.hist_gbdt.l2_regularization,
     )
-    logger.info("Trained MLP")
+    logger.info("Trained HistGradientBoostingClassifier")
 
     logistic_y_pred = predict_classes(logistic_model, split.X_test)
     logistic_y_proba = predict_probabilities(logistic_model, split.X_test)
 
-    mlp_y_pred = predict_classes(mlp_model, split.X_test)
-    mlp_y_proba = predict_probabilities(mlp_model, split.X_test)
+    hist_gbdt_y_pred = predict_classes(hist_gbdt_model, split.X_test)
+    hist_gbdt_y_proba = predict_probabilities(hist_gbdt_model, split.X_test)
 
     logistic_result = evaluate_binary_classifier(
         model_name="logistic",
@@ -119,19 +119,19 @@ def main() -> None:
         y_pred=logistic_y_pred,
         y_proba=logistic_y_proba,
     )
-    mlp_result = evaluate_binary_classifier(
-        model_name="mlp",
+    hist_gbdt_result = evaluate_binary_classifier(
+        model_name="hist_gbdt",
         y_true=split.y_test,
-        y_pred=mlp_y_pred,
-        y_proba=mlp_y_proba,
+        y_pred=hist_gbdt_y_pred,
+        y_proba=hist_gbdt_y_proba,
     )
 
     metrics = {
         "logistic": stringify_metrics(summarize_evaluation(logistic_result)),
-        "mlp": stringify_metrics(summarize_evaluation(mlp_result)),
+        "hist_gbdt": stringify_metrics(summarize_evaluation(hist_gbdt_result)),
     }
     save_json(metrics, dirs["root"] / "metrics.json")
-    logger.info("Saved metrics")
+    logger.info("Metrics: %s", metrics)
 
     logistic_coefs = get_logistic_coefficients(logistic_model, feature_names)
     save_json(
@@ -145,9 +145,9 @@ def main() -> None:
     plot_score_distribution(split.y_test, logistic_result.y_proba, dirs["figures"] / "score_distribution_logistic.png", "Logistic Regression")
     plot_confusion_matrix(logistic_result.confusion_matrix, dirs["figures"] / "confusion_matrix_logistic.png", "Logistic Regression")
 
-    plot_roc_curve(split.y_test, mlp_result.y_proba, dirs["figures"] / "roc_mlp.png", "Small MLP")
-    plot_score_distribution(split.y_test, mlp_result.y_proba, dirs["figures"] / "score_distribution_mlp.png", "Small MLP")
-    plot_confusion_matrix(mlp_result.confusion_matrix, dirs["figures"] / "confusion_matrix_mlp.png", "Small MLP")
+    plot_roc_curve(split.y_test, hist_gbdt_result.y_proba, dirs["figures"] / "roc_hist_gbdt.png", "HistGradientBoosting")
+    plot_score_distribution(split.y_test, hist_gbdt_result.y_proba, dirs["figures"] / "score_distribution_hist_gbdt.png", "HistGradientBoosting")
+    plot_confusion_matrix(hist_gbdt_result.confusion_matrix, dirs["figures"] / "confusion_matrix_hist_gbdt.png", "HistGradientBoosting")
 
     logger.info("Saved evaluation plots")
     logger.info("Experiment complete: %s", run_id)

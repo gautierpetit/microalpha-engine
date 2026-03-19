@@ -20,10 +20,11 @@ split:
 models:
   logistic:
     random_state: 42
-  mlp:
+
+  hist_gbdt:
     random_state: 42
-    hidden_layer_sizes: [32]
+    learning_rate: 0.05
     max_iter: 200
-    alpha: 0.0001
-    learning_rate_init: 0.001
-    batch_size: 256
+    max_leaf_nodes: 31
+    min_samples_leaf: 50
+    l2_regularization: 0.0

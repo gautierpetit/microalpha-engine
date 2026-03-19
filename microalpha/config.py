@@ -40,19 +40,19 @@ class LogisticConfig:
 
 
 @dataclass(frozen=True)
-class MLPConfig:
+class HistGBDTConfig:
     random_state: int
-    hidden_layer_sizes: list[int]
+    learning_rate: float
     max_iter: int
-    alpha: float
-    learning_rate_init: float
-    batch_size: int
+    max_leaf_nodes: int
+    min_samples_leaf: int
+    l2_regularization: float
 
 
 @dataclass(frozen=True)
 class ModelConfig:
     logistic: LogisticConfig
-    mlp: MLPConfig
+    hist_gbdt: HistGBDTConfig
 
 
 @dataclass(frozen=True)
@@ -76,7 +76,7 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
         split=SplitConfig(**raw["split"]),
         models=ModelConfig(
             logistic=LogisticConfig(**raw["models"]["logistic"]),
-            mlp=MLPConfig(**raw["models"]["mlp"]),
+            hist_gbdt=HistGBDTConfig(**raw["models"]["hist_gbdt"]),
         ),
     )
 
@@ -89,6 +89,6 @@ def config_to_dict(cfg: ExperimentConfig) -> dict[str, Any]:
         "split": vars(cfg.split),
         "models": {
             "logistic": vars(cfg.models.logistic),
-            "mlp": vars(cfg.models.mlp),
+            "hist_gbdt": vars(cfg.models.hist_gbdt),
         },
     }

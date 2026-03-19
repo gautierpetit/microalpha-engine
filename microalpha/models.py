@@ -4,13 +4,13 @@ from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 
-ModelName = Literal["logistic", "mlp"]
+ModelName = Literal["logistic", "hist_gbdt"]
 
 
 @dataclass(frozen=True)
@@ -110,37 +110,25 @@ def build_logistic_model(
     )
 
 
-def build_mlp_model(
-    hidden_layer_sizes: tuple[int, ...] = (32,),
+def build_hist_gbdt_model(
+    learning_rate: float = 0.05,
     max_iter: int = 200,
-    alpha: float = 1e-4,
-    learning_rate_init: float = 1e-3,
-    batch_size: int = 256,
+    max_leaf_nodes: int = 31,
+    min_samples_leaf: int = 50,
+    l2_regularization: float = 0.0,
     random_state: int = 42,
-) -> Pipeline:
+):
     """
-    Build standardized small MLP pipeline.
+    Build standardized HistGradientBoostingClassifier.
     """
-    return Pipeline(
-        steps=[
-            ("scaler", StandardScaler()),
-            (
-                "clf",
-                MLPClassifier(
-                    hidden_layer_sizes=hidden_layer_sizes,
-                    activation="relu",
-                    solver="adam",
-                    alpha=alpha,
-                    batch_size=batch_size,
-                    learning_rate_init=learning_rate_init,
-                    max_iter=max_iter,
-                    early_stopping=True,
-                    validation_fraction=0.1,
-                    n_iter_no_change=10,
-                    random_state=random_state,
-                ),
-            ),
-        ]
+    # HistGradientBoosting does not need feature scaling
+    return HistGradientBoostingClassifier(
+        learning_rate=learning_rate,
+        max_iter=max_iter,
+        max_leaf_nodes=max_leaf_nodes,
+        min_samples_leaf=min_samples_leaf,
+        l2_regularization=l2_regularization,
+        random_state=random_state,
     )
 
 
@@ -150,12 +138,12 @@ def train_model(
     model_name: ModelName,
     *,
     logistic_random_state: int = 42,
-    mlp_random_state: int = 42,
-    mlp_hidden_layer_sizes: tuple[int, ...] = (32,),
-    mlp_max_iter: int = 200,
-    mlp_alpha: float = 1e-4,
-    mlp_learning_rate_init: float = 1e-3,
-    mlp_batch_size: int = 256,
+    hist_gbdt_random_state: int = 42,
+    hist_gbdt_learning_rate: float = 0.05,
+    hist_gbdt_max_iter: int = 200,
+    hist_gbdt_max_leaf_nodes: int = 31,
+    hist_gbdt_min_samples_leaf: int = 50,
+    hist_gbdt_l2_regularization: float = 0.0,
 ):
     """
     Train a model by name.
@@ -166,32 +154,30 @@ def train_model(
         Training features.
     y_train : np.ndarray
         Training labels.
-    model_name : {"logistic", "mlp"}
+    model_name : {"logistic", "hist_gbdt"}
         Model selection.
-
     Returns
     -------
-    fitted model
-        sklearn Pipeline object.
+    Trained model instance.
     """
     _validate_X_y(X_train, y_train)
 
     if model_name == "logistic":
         model = build_logistic_model(random_state=logistic_random_state)
 
-    elif model_name == "mlp":
-        model = build_mlp_model(
-            hidden_layer_sizes=mlp_hidden_layer_sizes,
-            max_iter=mlp_max_iter,
-            alpha=mlp_alpha,
-            learning_rate_init=mlp_learning_rate_init,
-            batch_size=mlp_batch_size,
-            random_state=mlp_random_state,
+    elif model_name == "hist_gbdt":
+        model = build_hist_gbdt_model(
+            learning_rate=hist_gbdt_learning_rate,
+            max_iter=hist_gbdt_max_iter,
+            max_leaf_nodes=hist_gbdt_max_leaf_nodes,
+            min_samples_leaf=hist_gbdt_min_samples_leaf,
+            l2_regularization=hist_gbdt_l2_regularization,
+            random_state=hist_gbdt_random_state,
         )
 
     else:
         raise ValueError(
-            f"Unsupported model_name={model_name!r}. Expected 'logistic' or 'mlp'."
+            f"Unsupported model_name={model_name!r}. Expected 'logistic' or 'hist_gbdt'."
         )
 
     model.fit(X_train, y_train)

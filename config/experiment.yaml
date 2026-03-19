@@ -1,0 +1,29 @@
+dataset:
+  message_csv: data/raw/LOBSTER_SampleFile_AAPL_2012-06-21_10/AAPL_2012-06-21_34200000_57600000_message_10.csv
+  orderbook_csv: data/raw/LOBSTER_SampleFile_AAPL_2012-06-21_10/AAPL_2012-06-21_34200000_57600000_orderbook_10.csv
+  levels: 10
+  price_scale: 10000
+
+labels:
+  horizon: 500
+  label_mode: binary_drop_ties
+
+features:
+  ofi_window_raw: 50
+  ofi_norm_windows: [10, 50, 100]
+  vol_window: 50
+  intensity_window: "1s"
+
+split:
+  train_fraction: 0.7
+
+models:
+  logistic:
+    random_state: 42
+  mlp:
+    random_state: 42
+    hidden_layer_sizes: [32]
+    max_iter: 200
+    alpha: 0.0001
+    learning_rate_init: 0.001
+    batch_size: 256

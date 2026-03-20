@@ -8,9 +8,15 @@ import yaml
 
 
 @dataclass(frozen=True)
-class DatasetConfig:
+class TickerConfig:
+    symbol: str
     message_csv: str
     orderbook_csv: str
+
+
+@dataclass(frozen=True)
+class DatasetConfig:
+    tickers: list[TickerConfig]
     levels: int
     price_scale: int
 
@@ -69,8 +75,15 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
     with path.open("r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
+    raw_dataset = raw["dataset"]
+    raw_tickers = raw_dataset.get("tickers")
+    
     return ExperimentConfig(
-        dataset=DatasetConfig(**raw["dataset"]),
+        dataset=DatasetConfig(
+            tickers=[TickerConfig(**ticker) for ticker in raw_tickers],
+            levels=raw_dataset["levels"],
+            price_scale=raw_dataset["price_scale"],
+        ),
         labels=LabelConfig(**raw["labels"]),
         features=FeatureConfig(**raw["features"]),
         split=SplitConfig(**raw["split"]),
@@ -83,7 +96,11 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
 
 def config_to_dict(cfg: ExperimentConfig) -> dict[str, Any]:
     return {
-        "dataset": vars(cfg.dataset),
+        "dataset": {
+            "tickers": [vars(ticker) for ticker in cfg.dataset.tickers],
+            "levels": cfg.dataset.levels,
+            "price_scale": cfg.dataset.price_scale,
+        },
         "labels": vars(cfg.labels),
         "features": vars(cfg.features),
         "split": vars(cfg.split),

@@ -1,8 +1,23 @@
 dataset:
-  message_csv: data/raw/LOBSTER_SampleFile_AAPL_2012-06-21_10/AAPL_2012-06-21_34200000_57600000_message_10.csv
-  orderbook_csv: data/raw/LOBSTER_SampleFile_AAPL_2012-06-21_10/AAPL_2012-06-21_34200000_57600000_orderbook_10.csv
   levels: 10
   price_scale: 10000
+  tickers:
+    - symbol: AAPL
+      message_csv: data/raw/LOBSTER_SampleFile_AAPL_2012-06-21_10/AAPL_2012-06-21_34200000_57600000_message_10.csv
+      orderbook_csv: data/raw/LOBSTER_SampleFile_AAPL_2012-06-21_10/AAPL_2012-06-21_34200000_57600000_orderbook_10.csv
+    - symbol: AMZN
+      message_csv: data/raw/LOBSTER_SampleFile_AMZN_2012-06-21_10/AMZN_2012-06-21_34200000_57600000_message_10.csv
+      orderbook_csv: data/raw/LOBSTER_SampleFile_AMZN_2012-06-21_10/AMZN_2012-06-21_34200000_57600000_orderbook_10.csv
+    - symbol: GOOG
+      message_csv: data/raw/LOBSTER_SampleFile_GOOG_2012-06-21_10/GOOG_2012-06-21_34200000_57600000_message_10.csv
+      orderbook_csv: data/raw/LOBSTER_SampleFile_GOOG_2012-06-21_10/GOOG_2012-06-21_34200000_57600000_orderbook_10.csv
+    - symbol: INTC
+      message_csv: data/raw/LOBSTER_SampleFile_INTC_2012-06-21_10/INTC_2012-06-21_34200000_57600000_message_10.csv
+      orderbook_csv: data/raw/LOBSTER_SampleFile_INTC_2012-06-21_10/INTC_2012-06-21_34200000_57600000_orderbook_10.csv
+    - symbol: MSFT
+      message_csv: data/raw/LOBSTER_SampleFile_MSFT_2012-06-21_10/MSFT_2012-06-21_34200000_57600000_message_10.csv
+      orderbook_csv: data/raw/LOBSTER_SampleFile_MSFT_2012-06-21_10/MSFT_2012-06-21_34200000_57600000_orderbook_10.csv
+
 
 labels:
   horizon: 500

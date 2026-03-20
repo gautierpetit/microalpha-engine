@@ -11,6 +11,11 @@ def make_run_id(prefix: str = "experiment") -> str:
     ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     return f"{ts}_{prefix}"
 
+def make_dataset_prefix(symbols: list[str]) -> str:
+    lowered = [symbol.lower() for symbol in symbols]
+    if len(lowered) == 1:
+        return lowered[0]
+    return f"pooled_{len(lowered)}t"
 
 def ensure_dir(path: str | Path) -> Path:
     path = Path(path)

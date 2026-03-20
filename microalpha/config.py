@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -77,7 +76,7 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
 
     raw_dataset = raw["dataset"]
     raw_tickers = raw_dataset.get("tickers")
-    
+
     return ExperimentConfig(
         dataset=DatasetConfig(
             tickers=[TickerConfig(**ticker) for ticker in raw_tickers],
@@ -92,20 +91,3 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
             hist_gbdt=HistGBDTConfig(**raw["models"]["hist_gbdt"]),
         ),
     )
-
-
-def config_to_dict(cfg: ExperimentConfig) -> dict[str, Any]:
-    return {
-        "dataset": {
-            "tickers": [vars(ticker) for ticker in cfg.dataset.tickers],
-            "levels": cfg.dataset.levels,
-            "price_scale": cfg.dataset.price_scale,
-        },
-        "labels": vars(cfg.labels),
-        "features": vars(cfg.features),
-        "split": vars(cfg.split),
-        "models": {
-            "logistic": vars(cfg.models.logistic),
-            "hist_gbdt": vars(cfg.models.hist_gbdt),
-        },
-    }

@@ -1,11 +1,7 @@
 from __future__ import annotations
+from dataclasses import asdict
 
-from dataclasses import dataclass
-from pathlib import Path
-
-import numpy as np
-
-from microalpha.config import ExperimentConfig, TickerConfig, config_to_dict, load_experiment_config
+from microalpha.config import load_experiment_config
 from microalpha.evaluation import (
     evaluate_binary_classifier,
     plot_confusion_matrix,
@@ -13,155 +9,45 @@ from microalpha.evaluation import (
     plot_score_distribution,
     summarize_evaluation,
 )
-from microalpha.features import TemporalFeatureConfig, compute_features, make_feature_names
-from microalpha.io import LobsterConfig, LobsterPaths, load_lobster
-from microalpha.labels import align_features_with_labels, create_directional_labels, summarize_labels
+from microalpha.features import make_feature_names
 from microalpha.models import (
-    SplitResult,
     get_logistic_coefficients,
     predict_classes,
     predict_probabilities,
     summarize_split,
-    time_train_test_split,
     train_model,
 )
-from microalpha.utils import make_artifact_dirs, make_run_id, save_json, setup_logger, stringify_metrics
-
-
-@dataclass(frozen=True)
-class TickerDataset:
-    symbol: str
-    X: np.ndarray
-    y: np.ndarray
-    n_events: int
-    label_summary: dict[str, float | int | str]
-
-
-@dataclass(frozen=True)
-class TickerSplit:
-    symbol: str
-    split: SplitResult
-    n_events: int
-    label_summary: dict[str, float | int | str]
-
-
-def build_ticker_dataset(
-    ticker_cfg: TickerConfig,
-    cfg: ExperimentConfig,
-    feature_cfg: TemporalFeatureConfig,
-) -> TickerDataset:
-    lobster_paths = LobsterPaths(
-        message_csv=Path(ticker_cfg.message_csv),
-        orderbook_csv=Path(ticker_cfg.orderbook_csv),
-    )
-    lobster_cfg = LobsterConfig(
-        levels=cfg.dataset.levels,
-        price_scale=cfg.dataset.price_scale,
-    )
-
-    data = load_lobster(lobster_paths, cfg=lobster_cfg, validate=True)
-
-    X_raw = compute_features(
-        bid_prices=data.bid_prices,
-        bid_sizes=data.bid_sizes,
-        ask_prices=data.ask_prices,
-        ask_sizes=data.ask_sizes,
-        midprice=data.midprice,
-        timestamps=data.t,
-        cfg=feature_cfg,
-    )
-
-    label_result = create_directional_labels(
-        midprice=data.midprice,
-        horizon=cfg.labels.horizon,
-        label_mode=cfg.labels.label_mode,
-    )
-    X, y = align_features_with_labels(X_raw, label_result)
-
-    return TickerDataset(
-        symbol=ticker_cfg.symbol,
-        X=X,
-        y=y,
-        n_events=len(data.t),
-        label_summary=summarize_labels(label_result),
-    )
-
-
-def split_and_pool_datasets(
-    datasets: list[TickerDataset],
-    train_fraction: float,
-) -> tuple[SplitResult, list[TickerSplit]]:
-    if not datasets:
-        raise ValueError("datasets must be non-empty")
-
-    ticker_splits: list[TickerSplit] = []
-    for dataset in datasets:
-        split = time_train_test_split(dataset.X, dataset.y, train_fraction=train_fraction)
-        ticker_splits.append(
-            TickerSplit(
-                symbol=dataset.symbol,
-                split=split,
-                n_events=dataset.n_events,
-                label_summary=dataset.label_summary,
-            )
-        )
-
-    pooled_split = SplitResult(
-        X_train=np.vstack([ticker_split.split.X_train for ticker_split in ticker_splits]),
-        X_test=np.vstack([ticker_split.split.X_test for ticker_split in ticker_splits]),
-        y_train=np.concatenate([ticker_split.split.y_train for ticker_split in ticker_splits]),
-        y_test=np.concatenate([ticker_split.split.y_test for ticker_split in ticker_splits]),
-        split_idx=-1,
-        train_fraction=train_fraction,
-        n_train=sum(ticker_split.split.n_train for ticker_split in ticker_splits),
-        n_test=sum(ticker_split.split.n_test for ticker_split in ticker_splits),
-    )
-    return pooled_split, ticker_splits
-
-
-def make_dataset_prefix(cfg: ExperimentConfig) -> str:
-    symbols = [ticker.symbol.lower() for ticker in cfg.dataset.tickers]
-    if len(symbols) == 1:
-        return symbols[0]
-    return f"pooled_{len(symbols)}t"
-
-
-def make_ticker_split_summary(ticker_split: TickerSplit) -> dict[str, float | int | str]:
-    return {
-        "symbol": ticker_split.symbol,
-        "n_events": ticker_split.n_events,
-        **ticker_split.label_summary,
-        **summarize_split(ticker_split.split),
-    }
+from microalpha.pipeline import (
+    build_ticker_dataset,
+    make_ticker_split_summary,
+    split_and_pool_datasets,
+)
+from microalpha.utils import (
+    make_artifact_dirs,
+    make_dataset_prefix,
+    make_run_id,
+    save_json,
+    setup_logger,
+    stringify_metrics,
+)
 
 
 def main() -> None:
     cfg = load_experiment_config("config/experiment.yaml")
 
-    run_id = make_run_id(prefix=f"h{cfg.labels.horizon}_{make_dataset_prefix(cfg)}")
+    symbols = [ticker.symbol for ticker in cfg.dataset.tickers]
+    run_id = make_run_id(prefix=f"h{cfg.labels.horizon}_{make_dataset_prefix(symbols)}")
     dirs = make_artifact_dirs(run_id)
     logger = setup_logger(dirs["logs"] / "run.log")
 
     logger.info("Starting experiment run: %s", run_id)
-    logger.info("Tickers: %s", [ticker.symbol for ticker in cfg.dataset.tickers])
-    save_json(config_to_dict(cfg), dirs["root"] / "config.json")
+    logger.info("Tickers: %s", symbols)
+    save_json(asdict(cfg), dirs["root"] / "config.json")
 
-    feature_cfg = TemporalFeatureConfig(
-        ofi_window_raw=cfg.features.ofi_window_raw,
-        ofi_norm_windows=tuple(cfg.features.ofi_norm_windows),
-        vol_window=cfg.features.vol_window,
-        intensity_window=cfg.features.intensity_window,
-    )
-    feature_names = make_feature_names(feature_cfg)
-
-    datasets: list[TickerDataset] = []
+    datasets = []
     for ticker_cfg in cfg.dataset.tickers:
         logger.info("Building dataset for %s", ticker_cfg.symbol)
-        dataset = build_ticker_dataset(
-            ticker_cfg=ticker_cfg,
-            cfg=cfg,
-            feature_cfg=feature_cfg,
-        )
+        dataset = build_ticker_dataset(ticker_cfg=ticker_cfg, cfg=cfg)
         logger.info(
             "Built dataset for %s: n_events=%s, X shape=%s, y shape=%s, tie_rate=%.6f",
             dataset.symbol,
@@ -181,14 +67,16 @@ def main() -> None:
         **summarize_split(split),
         "pooled": len(ticker_splits) > 1,
         "n_tickers": len(ticker_splits),
-        "symbols": [ticker_split.symbol for ticker_split in ticker_splits],
+        "symbols": [ts.symbol for ts in ticker_splits],
     }
     save_json(split_summary, dirs["root"] / "split_summary.json")
     save_json(
-        {"tickers": [make_ticker_split_summary(ticker_split) for ticker_split in ticker_splits]},
+        {"tickers": [make_ticker_split_summary(ts) for ts in ticker_splits]},
         dirs["root"] / "ticker_summaries.json",
     )
     logger.info("Pooled split summary: %s", split_summary)
+
+    feature_names = make_feature_names(cfg.features)
 
     logistic_model = train_model(
         X_train=split.X_train,
@@ -247,7 +135,6 @@ def main() -> None:
         },
         dirs["root"] / "logistic_coefficients.json",
     )
-    logger.info("Saved logistic coefficients")
 
     plot_roc_curve(
         split.y_test,

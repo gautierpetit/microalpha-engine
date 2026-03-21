@@ -77,7 +77,7 @@ def compute_forward_midprice_delta(midprice: np.ndarray, horizon: int) -> np.nda
 def create_directional_labels(
     midprice: np.ndarray,
     horizon: int,
-    label_mode: Literal["binary_drop_ties", "three_class"] = "binary_drop_ties",
+    label_mode: Literal["binary_drop_ties"] = "binary_drop_ties",
 ) -> LabelResult:
     """
     Create directional labels from forward midprice changes.
@@ -88,11 +88,6 @@ def create_directional_labels(
         y = 1 if delta > 0
         y = 0 if delta < 0
         ties (delta == 0) are dropped
-
-    three_class:
-        y = 2 if delta > 0
-        y = 1 if delta == 0
-        y = 0 if delta < 0
 
     Parameters
     ----------
@@ -116,13 +111,6 @@ def create_directional_labels(
     if label_mode == "binary_drop_ties":
         valid_mask = ~tie_mask
         y = (delta[valid_mask] > 0).astype(np.int8)
-
-    elif label_mode == "three_class":
-        valid_mask = np.ones_like(delta, dtype=bool)
-        y = np.empty_like(delta, dtype=np.int8)
-        y[delta < 0] = 0
-        y[delta == 0] = 1
-        y[delta > 0] = 2
 
     else:
         raise ValueError(

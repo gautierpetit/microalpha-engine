@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import yaml
+
+
+TaskName = Literal["direction", "movement"]
 
 
 @dataclass(frozen=True)
@@ -18,6 +22,11 @@ class DatasetConfig:
     tickers: list[TickerConfig]
     levels: int
     price_scale: int
+
+
+@dataclass(frozen=True)
+class TaskConfig:
+    name: TaskName
 
 
 @dataclass(frozen=True)
@@ -63,6 +72,7 @@ class ModelConfig:
 @dataclass(frozen=True)
 class ExperimentConfig:
     dataset: DatasetConfig
+    task: TaskConfig
     labels: LabelConfig
     features: FeatureConfig
     split: SplitConfig
@@ -76,6 +86,8 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
 
     raw_dataset = raw["dataset"]
     raw_tickers = raw_dataset.get("tickers")
+    if not raw_tickers:
+        raise ValueError("dataset.tickers must be provided and non-empty")
 
     return ExperimentConfig(
         dataset=DatasetConfig(
@@ -83,6 +95,7 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
             levels=raw_dataset["levels"],
             price_scale=raw_dataset["price_scale"],
         ),
+        task=TaskConfig(**raw["task"]),
         labels=LabelConfig(**raw["labels"]),
         features=FeatureConfig(**raw["features"]),
         split=SplitConfig(**raw["split"]),

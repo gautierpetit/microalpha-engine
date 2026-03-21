@@ -6,7 +6,8 @@ from typing import Literal
 import numpy as np
 
 
-LabelMode = Literal["binary_drop_ties", "three_class"]
+TaskName = Literal["direction", "movement"]
+LabelMode = Literal["binary_drop_ties", "three_class", "binary"]
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,8 @@ class LabelResult:
         For three_class: all True
     horizon : int
         Event horizon used for labeling.
+    task_name : str
+        Name of the task, e.g. "direction" or "movement".
     label_mode : str
         Labeling mode used.
     tie_rate : float
@@ -40,6 +43,7 @@ class LabelResult:
     delta: np.ndarray
     valid_mask: np.ndarray
     horizon: int
+    task_name: str
     label_mode: str
     tie_rate: float
     n_raw: int
@@ -67,14 +71,13 @@ def compute_forward_midprice_delta(midprice: np.ndarray, horizon: int) -> np.nda
 
     m0 = midprice[:-horizon]
     m1 = midprice[horizon:]
-    delta = m1 - m0
-    return delta
+    return m1 - m0
 
 
 def create_directional_labels(
     midprice: np.ndarray,
     horizon: int,
-    label_mode: LabelMode = "binary_drop_ties",
+    label_mode: Literal["binary_drop_ties", "three_class"] = "binary_drop_ties",
 ) -> LabelResult:
     """
     Create directional labels from forward midprice changes.
@@ -123,21 +126,99 @@ def create_directional_labels(
 
     else:
         raise ValueError(
-            f"Unsupported label_mode={label_mode!r}. "
+            f"Unsupported direction label_mode={label_mode!r}. "
             "Expected 'binary_drop_ties' or 'three_class'."
         )
-
-    n_final = int(y.shape[0])
 
     return LabelResult(
         y=y,
         delta=delta,
         valid_mask=valid_mask,
         horizon=horizon,
+        task_name="direction",
         label_mode=label_mode,
         tie_rate=tie_rate,
         n_raw=n_raw,
-        n_final=n_final,
+        n_final=int(y.shape[0]),
+    )
+
+
+def create_movement_labels(
+    midprice: np.ndarray,
+    horizon: int,
+    label_mode: Literal["binary"] = "binary",
+) -> LabelResult:
+    """
+    Create movement labels from forward midprice changes.
+
+    Modes
+    -----
+    binary:
+        y = 1 if delta != 0
+
+    Parameters
+    ----------
+    midprice : np.ndarray
+        Midprice series of shape (N,).
+    horizon : int
+        Number of events ahead.
+    label_mode : {"binary"}
+        Labeling policy.
+
+    Returns
+    -------
+    LabelResult
+        Structured output including labels, raw deltas, mask, and diagnostics.
+    """
+    if label_mode != "binary":
+        raise ValueError(
+            f"Unsupported movement label_mode={label_mode!r}. Expected 'binary'."
+        )
+
+    delta = compute_forward_midprice_delta(midprice, horizon)
+    move_mask = delta != 0.0
+    tie_rate = float(np.mean(~move_mask))
+    n_raw = int(delta.shape[0])
+
+    valid_mask = np.ones_like(delta, dtype=bool)
+    y = move_mask.astype(np.int8)
+
+    return LabelResult(
+        y=y,
+        delta=delta,
+        valid_mask=valid_mask,
+        horizon=horizon,
+        task_name="movement",
+        label_mode=label_mode,
+        tie_rate=tie_rate,
+        n_raw=n_raw,
+        n_final=int(y.shape[0]),
+    )
+
+
+def create_labels(
+    *,
+    midprice: np.ndarray,
+    horizon: int,
+    task_name: TaskName,
+    label_mode: str,
+) -> LabelResult:
+    if task_name == "direction":
+        return create_directional_labels(
+            midprice=midprice,
+            horizon=horizon,
+            label_mode=label_mode,  # type: ignore[arg-type]
+        )
+
+    if task_name == "movement":
+        return create_movement_labels(
+            midprice=midprice,
+            horizon=horizon,
+            label_mode=label_mode,  # type: ignore[arg-type]
+        )
+
+    raise ValueError(
+        f"Unsupported task_name={task_name!r}. Expected 'direction' or 'movement'."
     )
 
 
@@ -192,9 +273,11 @@ def summarize_labels(label_result: LabelResult) -> dict[str, float | int | str]:
     Return a compact summary dictionary for reporting or metadata logging.
     """
     summary: dict[str, float | int | str] = {
+        "task_name": label_result.task_name,
         "horizon": label_result.horizon,
         "label_mode": label_result.label_mode,
         "tie_rate": label_result.tie_rate,
+        "move_rate": 1.0 - label_result.tie_rate,
         "n_raw": label_result.n_raw,
         "n_final": label_result.n_final,
     }

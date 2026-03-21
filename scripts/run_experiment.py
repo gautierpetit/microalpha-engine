@@ -24,7 +24,7 @@ from microalpha.pipeline import (
 )
 from microalpha.utils import (
     make_artifact_dirs,
-    make_dataset_prefix,
+    make_experiment_prefix,
     make_run_id,
     save_json,
     setup_logger,
@@ -36,12 +36,20 @@ def main() -> None:
     cfg = load_experiment_config("config/experiment.yaml")
 
     symbols = [ticker.symbol for ticker in cfg.dataset.tickers]
-    run_id = make_run_id(prefix=f"h{cfg.labels.horizon}_{make_dataset_prefix(symbols)}")
+    prefix = make_experiment_prefix(
+        horizon=cfg.labels.horizon,
+        task_name=cfg.task.name,
+        symbols=symbols,
+    )
+    run_id = make_run_id(prefix=prefix)
+
     dirs = make_artifact_dirs(run_id)
     logger = setup_logger(dirs["logs"] / "run.log")
 
     logger.info("Starting experiment run: %s", run_id)
+    logger.info("Task: %s", cfg.task.name)
     logger.info("Tickers: %s", symbols)
+
     save_json(asdict(cfg), dirs["root"] / "config.json")
 
     datasets = []
@@ -49,12 +57,13 @@ def main() -> None:
         logger.info("Building dataset for %s", ticker_cfg.symbol)
         dataset = build_ticker_dataset(ticker_cfg=ticker_cfg, cfg=cfg)
         logger.info(
-            "Built dataset for %s: n_events=%s, X shape=%s, y shape=%s, tie_rate=%.6f",
+            "Built dataset for %s: n_events=%s, X shape=%s, y shape=%s, tie_rate=%.6f, move_rate=%.6f",
             dataset.symbol,
             dataset.n_events,
             dataset.X.shape,
             dataset.y.shape,
             dataset.label_summary["tie_rate"],
+            dataset.label_summary["move_rate"],
         )
         datasets.append(dataset)
 
@@ -65,6 +74,7 @@ def main() -> None:
 
     split_summary = {
         **summarize_split(split),
+        "task_name": cfg.task.name,
         "pooled": len(ticker_splits) > 1,
         "n_tickers": len(ticker_splits),
         "symbols": [ts.symbol for ts in ticker_splits],
@@ -75,8 +85,6 @@ def main() -> None:
         dirs["root"] / "ticker_summaries.json",
     )
     logger.info("Pooled split summary: %s", split_summary)
-
-    feature_names = make_feature_names(cfg.features)
 
     logistic_model = train_model(
         X_train=split.X_train,
@@ -119,12 +127,14 @@ def main() -> None:
     )
 
     metrics = {
+        "task_name": cfg.task.name,
         "logistic": stringify_metrics(summarize_evaluation(logistic_result)),
         "hist_gbdt": stringify_metrics(summarize_evaluation(hist_gbdt_result)),
     }
     save_json(metrics, dirs["root"] / "metrics.json")
     logger.info("Metrics: %s", metrics)
 
+    feature_names = make_feature_names(cfg.features)
     logistic_coefs = get_logistic_coefficients(logistic_model, feature_names)
     save_json(
         {
@@ -135,41 +145,42 @@ def main() -> None:
         },
         dirs["root"] / "logistic_coefficients.json",
     )
+    logger.info("Saved logistic coefficients")
 
     plot_roc_curve(
         split.y_test,
         logistic_result.y_proba,
         dirs["figures"] / "roc_logistic.png",
-        "Logistic Regression",
+        f"Logistic Regression ({cfg.task.name})",
     )
     plot_score_distribution(
         split.y_test,
         logistic_result.y_proba,
         dirs["figures"] / "score_distribution_logistic.png",
-        "Logistic Regression",
+        f"Logistic Regression ({cfg.task.name})",
     )
     plot_confusion_matrix(
         logistic_result.confusion_matrix,
         dirs["figures"] / "confusion_matrix_logistic.png",
-        "Logistic Regression",
+        f"Logistic Regression ({cfg.task.name})",
     )
 
     plot_roc_curve(
         split.y_test,
         hist_gbdt_result.y_proba,
         dirs["figures"] / "roc_hist_gbdt.png",
-        "HistGradientBoosting",
+        f"HistGradientBoosting ({cfg.task.name})",
     )
     plot_score_distribution(
         split.y_test,
         hist_gbdt_result.y_proba,
         dirs["figures"] / "score_distribution_hist_gbdt.png",
-        "HistGradientBoosting",
+        f"HistGradientBoosting ({cfg.task.name})",
     )
     plot_confusion_matrix(
         hist_gbdt_result.confusion_matrix,
         dirs["figures"] / "confusion_matrix_hist_gbdt.png",
-        "HistGradientBoosting",
+        f"HistGradientBoosting ({cfg.task.name})",
     )
 
     logger.info("Saved evaluation plots")

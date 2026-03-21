@@ -7,7 +7,7 @@ import numpy as np
 from microalpha.config import ExperimentConfig, TickerConfig
 from microalpha.features import compute_features
 from microalpha.io import LobsterPaths, load_lobster
-from microalpha.labels import align_features_with_labels, create_directional_labels, summarize_labels
+from microalpha.labels import align_features_with_labels, create_labels, summarize_labels
 from microalpha.models import SplitResult, summarize_split, time_train_test_split
 
 
@@ -52,9 +52,10 @@ def build_ticker_dataset(
         cfg=cfg.features,
     )
 
-    label_result = create_directional_labels(
+    label_result = create_labels(
         midprice=data.midprice,
         horizon=cfg.labels.horizon,
+        task_name=cfg.task.name,
         label_mode=cfg.labels.label_mode,
     )
 

@@ -23,7 +23,7 @@ task:
 
 labels:
   horizon: 500
-  label_mode: binary_drop_ties # if movement use "binary"
+  label_mode: binary_drop_ties # if movement use "binary" otherwise "binary_drop_ties or "binary_keep_ties_as_zero"
 
 features:
   ofi_window_raw: 50

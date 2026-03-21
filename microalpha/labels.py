@@ -5,11 +5,6 @@ from typing import Literal
 
 import numpy as np
 
-
-TaskName = Literal["direction", "movement"]
-LabelMode = Literal["binary_drop_ties", "three_class", "binary"]
-
-
 @dataclass(frozen=True)
 class LabelResult:
     """
@@ -25,7 +20,6 @@ class LabelResult:
     valid_mask : np.ndarray
         Boolean mask applied to delta (and later to features) to produce y.
         For binary_drop_ties: delta != 0
-        For three_class: all True
     horizon : int
         Event horizon used for labeling.
     task_name : str
@@ -77,7 +71,7 @@ def compute_forward_midprice_delta(midprice: np.ndarray, horizon: int) -> np.nda
 def create_directional_labels(
     midprice: np.ndarray,
     horizon: int,
-    label_mode: Literal["binary_drop_ties"] = "binary_drop_ties",
+    label_mode: Literal["binary_drop_ties", "binary_keep_ties_as_zero"] = "binary_drop_ties",
 ) -> LabelResult:
     """
     Create directional labels from forward midprice changes.
@@ -88,6 +82,9 @@ def create_directional_labels(
         y = 1 if delta > 0
         y = 0 if delta < 0
         ties (delta == 0) are dropped
+    binary_keep_ties_as_zero:
+        y = 1 if delta > 0
+        y = 0 if delta <= 0
 
     Parameters
     ----------
@@ -95,7 +92,7 @@ def create_directional_labels(
         Midprice series of shape (N,).
     horizon : int
         Number of events ahead.
-    label_mode : {"binary_drop_ties", "three_class"}
+    label_mode : {"binary_drop_ties", "binary_keep_ties_as_zero"}
         Labeling policy.
 
     Returns
@@ -112,10 +109,13 @@ def create_directional_labels(
         valid_mask = ~tie_mask
         y = (delta[valid_mask] > 0).astype(np.int8)
 
+    elif label_mode == "binary_keep_ties_as_zero":
+        valid_mask = np.ones_like(delta, dtype=bool)
+        y = (delta[valid_mask] > 0).astype(np.int8)
     else:
         raise ValueError(
             f"Unsupported direction label_mode={label_mode!r}. "
-            "Expected 'binary_drop_ties' or 'three_class'."
+            "Expected 'binary_drop_ties' or 'binary_keep_ties_as_zero'."
         )
 
     return LabelResult(
@@ -188,7 +188,7 @@ def create_labels(
     *,
     midprice: np.ndarray,
     horizon: int,
-    task_name: TaskName,
+    task_name: Literal["direction", "movement"],
     label_mode: str,
 ) -> LabelResult:
     if task_name == "direction":

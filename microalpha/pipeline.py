@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Iterator
 
 import numpy as np
 
 from microalpha.config import ExperimentConfig, TickerConfig
 from microalpha.features import compute_features
 from microalpha.io import LobsterPaths, load_lobster
-from microalpha.labels import align_features_with_labels, create_labels, summarize_labels
+from microalpha.labels import (
+    align_features_with_labels,
+    create_labels,
+    summarize_labels,
+)
 from microalpha.models import SplitResult, summarize_split, time_train_test_split
 
 
@@ -79,7 +84,9 @@ def split_and_pool_datasets(
 
     ticker_splits: list[TickerSplit] = []
     for dataset in datasets:
-        split = time_train_test_split(dataset.X, dataset.y, train_fraction=train_fraction)
+        split = time_train_test_split(
+            dataset.X, dataset.y, train_fraction=train_fraction
+        )
         ticker_splits.append(
             TickerSplit(
                 symbol=dataset.symbol,
@@ -103,10 +110,29 @@ def split_and_pool_datasets(
     return pooled_split, ticker_splits
 
 
-def make_ticker_split_summary(ticker_split: TickerSplit) -> dict[str, float | int | str]:
+def make_ticker_split_summary(
+    ticker_split: TickerSplit,
+) -> dict[str, float | int | str]:
     return {
         "symbol": ticker_split.symbol,
         "n_events": ticker_split.n_events,
         **ticker_split.label_summary,
         **summarize_split(ticker_split.split),
     }
+
+
+def iter_ticker_test_segments(
+    ticker_splits: list[TickerSplit],
+) -> Iterator[tuple[TickerSplit, slice]]:
+    """
+    Yield (ticker_split, slice) pairs mapping each ticker to its segment inside
+    the pooled test arrays.
+
+    Assumes pooled X_test / y_test were built by concatenating ticker test sets
+    in the same order as `ticker_splits`, which is how split_and_pool_datasets() behaves.
+    """
+    start = 0
+    for ticker_split in ticker_splits:
+        stop = start + ticker_split.split.n_test
+        yield ticker_split, slice(start, stop)
+        start = stop

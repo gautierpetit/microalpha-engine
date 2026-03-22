@@ -19,6 +19,7 @@ from microalpha.models import (
 )
 from microalpha.pipeline import (
     build_ticker_dataset,
+    iter_ticker_test_segments,
     make_ticker_split_summary,
     split_and_pool_datasets,
 )
@@ -133,6 +134,52 @@ def main() -> None:
     }
     save_json(metrics, dirs["root"] / "metrics.json")
     logger.info("Metrics: %s", metrics)
+
+    pooled_ticker_metrics: dict[str, object] = {
+        "task_name": cfg.task.name,
+        "label_mode": cfg.labels.label_mode,
+        "tickers": [],
+    }
+
+    for ticker_split, test_slice in iter_ticker_test_segments(ticker_splits):
+        y_true_ticker = split.y_test[test_slice]
+
+        logistic_result_ticker = evaluate_binary_classifier(
+            model_name="logistic",
+            y_true=y_true_ticker,
+            y_pred=logistic_y_pred[test_slice],
+            y_proba=logistic_y_proba[test_slice],
+        )
+
+        hist_gbdt_result_ticker = evaluate_binary_classifier(
+            model_name="hist_gbdt",
+            y_true=y_true_ticker,
+            y_pred=hist_gbdt_y_pred[test_slice],
+            y_proba=hist_gbdt_y_proba[test_slice],
+        )
+
+        pooled_ticker_metrics["tickers"].append(
+            {
+                "symbol": ticker_split.symbol,
+                "n_test": ticker_split.split.n_test,
+                "test_pos_rate": float(ticker_split.split.y_test.mean()),
+                "logistic": stringify_metrics(summarize_evaluation(logistic_result_ticker)),
+                "hist_gbdt": stringify_metrics(summarize_evaluation(hist_gbdt_result_ticker)),
+            }
+        )
+    
+    total_segment_n = sum(ts.split.n_test for ts in ticker_splits)
+    if total_segment_n != split.y_test.shape[0]:
+        raise ValueError(
+            f"Per-ticker test segments sum to {total_segment_n}, "
+            f"but pooled y_test has length {split.y_test.shape[0]}"
+        )
+
+    save_json(
+        pooled_ticker_metrics,
+        dirs["root"] / "pooled_ticker_metrics.json",
+    )
+    logger.info("Saved pooled per-ticker metrics")    
 
     feature_names = make_feature_names(cfg.features)
     logistic_coefs = get_logistic_coefficients(logistic_model, feature_names)

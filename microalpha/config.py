@@ -13,8 +13,8 @@ TaskName = Literal["direction", "movement"]
 @dataclass(frozen=True)
 class TickerConfig:
     symbol: str
-    message_csv: str
-    orderbook_csv: str
+    message_csv: Path
+    orderbook_csv: Path
 
 
 @dataclass(frozen=True)

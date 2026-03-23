@@ -7,7 +7,7 @@ import numpy as np
 
 from microalpha.config import ExperimentConfig, TickerConfig
 from microalpha.features import compute_features
-from microalpha.io import LobsterPaths, load_lobster
+from microalpha.io import load_lobster
 from microalpha.labels import (
     align_features_with_labels,
     create_labels,
@@ -38,10 +38,7 @@ def build_ticker_dataset(
     cfg: ExperimentConfig,
 ) -> TickerDataset:
     data = load_lobster(
-        LobsterPaths(
-            message_csv=ticker_cfg.message_csv,
-            orderbook_csv=ticker_cfg.orderbook_csv,
-        ),
+        paths=ticker_cfg,
         levels=cfg.dataset.levels,
         price_scale=cfg.dataset.price_scale,
         validate=True,

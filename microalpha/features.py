@@ -38,7 +38,7 @@ def compute_features(
         ],
     )
 
-    core_df["ofi_roll_sum_50"] = (
+    core_df[f"ofi_roll_sum_{cfg.ofi_window_raw}"] = (
         core_df["ofi_best"].rolling(cfg.ofi_window_raw, min_periods=1).sum()
     )
 
@@ -49,14 +49,14 @@ def compute_features(
 
     midprice_series = pd.Series(midprice)
     mid_returns = midprice_series.diff().fillna(0.0)
-    core_df["midprice_vol_50"] = (
+    core_df[f"midprice_vol_{cfg.vol_window}"] = (
         mid_returns.rolling(cfg.vol_window, min_periods=1).std().fillna(0.0)
     )
 
     timestamps_dt = pd.to_datetime(timestamps, unit="s")
     event_count = pd.Series(1.0, index=timestamps_dt)
     intensity = event_count.rolling(cfg.intensity_window).sum()
-    core_df["event_intensity_1s"] = intensity.to_numpy(dtype=np.float64)
+    core_df[f"event_intensity_{cfg.intensity_window}"] = intensity.to_numpy(dtype=np.float64)
 
     return core_df.to_numpy(dtype=np.float64)
 
@@ -75,6 +75,6 @@ def make_feature_names(cfg: FeatureConfig) -> list[str]:
     ]
 
     names.extend([f"ofi_best_norm_roll_sum_{w}" for w in cfg.ofi_norm_windows])
-    names.extend(["midprice_vol_50", "event_intensity_1s"])
+    names.extend([f"midprice_vol_{cfg.vol_window}", f"event_intensity_{cfg.intensity_window}"])
 
     return names

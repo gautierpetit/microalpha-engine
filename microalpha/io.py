@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-
-@dataclass(frozen=True)
-class LobsterPaths:
-    message_csv: Path
-    orderbook_csv: Path
+from microalpha.config import TickerConfig
 
 
 @dataclass(frozen=True)
@@ -24,7 +19,7 @@ class LobsterData:
 
 
 def load_lobster(
-    paths: LobsterPaths,
+    paths: TickerConfig,
     *,
     levels: int,
     price_scale: int,

@@ -142,6 +142,36 @@ def plot_confusion_matrix(
     plt.close()
 
 
+def plot_feature_importance_barh(
+    importance_rows: list[dict[str, float | str]],
+    out_path: Path,
+    model_name: str,
+    *,
+    top_n: int = 12,
+) -> None:
+    """
+    Save a horizontal bar chart of top permutation feature importances.
+    """
+    if top_n <= 0:
+        raise ValueError(f"top_n must be positive, got {top_n}")
+
+    rows = importance_rows[:top_n]
+    if not rows:
+        raise ValueError("importance_rows must be non-empty")
+
+    features = [str(row["feature"]) for row in rows][::-1]
+    means = [float(row["importance_mean"]) for row in rows][::-1]
+
+    plt.figure(figsize=(10, 6))
+    plt.barh(features, means)
+    plt.xlabel("Permutation importance (mean ROC AUC decrease)")
+    plt.ylabel("Feature")
+    plt.title(f"Top {min(top_n, len(rows))} Feature Importances - {model_name}")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+
+
 def _validate_eval_inputs(
     y_true: np.ndarray,
     y_pred: np.ndarray,

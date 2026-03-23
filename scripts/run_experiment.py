@@ -5,15 +5,18 @@ from microalpha.config import load_experiment_config
 from microalpha.evaluation import (
     evaluate_binary_classifier,
     plot_confusion_matrix,
+    plot_feature_importance_barh,
     plot_roc_curve,
     plot_score_distribution,
     summarize_evaluation,
 )
 from microalpha.features import make_feature_names
 from microalpha.models import (
+    compute_permutation_importance,
     get_logistic_coefficients,
     predict_classes,
     predict_probabilities,
+    save_trained_model,
     summarize_split,
     train_model,
 )
@@ -108,6 +111,10 @@ def main() -> None:
     )
     logger.info("Trained HistGradientBoostingClassifier")
 
+    save_trained_model(logistic_model, dirs["models"] / "logistic.joblib")
+    save_trained_model(hist_gbdt_model, dirs["models"] / "hist_gbdt.joblib")
+    logger.info("Saved trained models")
+
     logistic_y_pred = predict_classes(logistic_model, split.X_test)
     logistic_y_proba = predict_probabilities(logistic_model, split.X_test)
 
@@ -182,6 +189,49 @@ def main() -> None:
     logger.info("Saved pooled per-ticker metrics")    
 
     feature_names = make_feature_names(cfg.features)
+
+    N_REPEATS = 10
+    logistic_perm_importance = compute_permutation_importance(
+        logistic_model,
+        split.X_test,
+        split.y_test,
+        feature_names,
+        scoring="roc_auc",
+        n_repeats=N_REPEATS,
+        random_state=cfg.models.logistic.random_state,
+        n_jobs=-1,
+    )
+    hist_gbdt_perm_importance = compute_permutation_importance(
+        hist_gbdt_model,
+        split.X_test,
+        split.y_test,
+        feature_names,
+        scoring="roc_auc",
+        n_repeats=N_REPEATS,
+        random_state=cfg.models.hist_gbdt.random_state,
+        n_jobs=-1,
+    )
+
+    save_json(
+        {
+            "model_name": "logistic",
+            "scoring": "roc_auc",
+            "n_repeats": N_REPEATS,
+            "importances": logistic_perm_importance,
+        },
+        dirs["root"] / "logistic_permutation_importance.json",
+    )
+    save_json(
+        {
+            "model_name": "hist_gbdt",
+            "scoring": "roc_auc",
+            "n_repeats": N_REPEATS,
+            "importances": hist_gbdt_perm_importance,
+        },
+        dirs["root"] / "hist_gbdt_permutation_importance.json",
+    )
+    logger.info("Saved permutation importance artifacts")
+
     logistic_coefs = get_logistic_coefficients(logistic_model, feature_names)
     save_json(
         {
@@ -231,6 +281,21 @@ def main() -> None:
     )
 
     logger.info("Saved evaluation plots")
+    TOP_N = 12
+    plot_feature_importance_barh(
+        logistic_perm_importance,
+        dirs["figures"] / "feature_importance_logistic.png",
+        "Logistic Regression",
+        top_n=TOP_N,
+    )
+    plot_feature_importance_barh(
+        hist_gbdt_perm_importance,
+        dirs["figures"] / "feature_importance_hist_gbdt.png",
+        "HistGradientBoosting",
+        top_n=TOP_N,
+    )
+    logger.info("Saved feature importance plots")
+
     logger.info("Experiment complete: %s", run_id)
 
     print(f"\nRun complete: {run_id}")

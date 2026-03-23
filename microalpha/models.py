@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
+from pathlib import Path
 
+import joblib
 import numpy as np
+from sklearn.inspection import permutation_importance
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
@@ -18,6 +21,7 @@ class SplitResult:
     """
     Container for time-ordered train/test split.
     """
+
     X_train: np.ndarray
     X_test: np.ndarray
     y_train: np.ndarray
@@ -99,7 +103,7 @@ def build_logistic_model(
             (
                 "clf",
                 LogisticRegression(
-                    l1_ratio=0, # L2 penalty only
+                    l1_ratio=0,  # L2 penalty only
                     C=1.0,
                     solver="lbfgs",
                     max_iter=1000,
@@ -229,7 +233,9 @@ def get_logistic_coefficients(
 
     coef = clf.coef_
     if coef.shape[0] != 1:
-        raise ValueError(f"Expected binary logistic coefficients of shape (1, F), got {coef.shape}")
+        raise ValueError(
+            f"Expected binary logistic coefficients of shape (1, F), got {coef.shape}"
+        )
 
     coef_1d = coef[0]
 
@@ -241,6 +247,65 @@ def get_logistic_coefficients(
     pairs = list(zip(feature_names, coef_1d.tolist()))
     pairs.sort(key=lambda x: abs(x[1]), reverse=True)
     return pairs
+
+def save_trained_model(model, out_path: str | Path) -> None:
+    """
+    Persist a trained sklearn-compatible model to disk with joblib.
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, out_path)
+
+
+def compute_permutation_importance(
+    model,
+    X: np.ndarray,
+    y: np.ndarray,
+    feature_names: list[str],
+    *,
+    scoring: str = "roc_auc",
+    n_repeats: int = 10,
+    random_state: int = 42,
+    n_jobs: int = -1,
+) -> list[dict[str, float | str]]:
+    """
+    Compute permutation feature importance on a held-out dataset.
+
+    Returns
+    -------
+    list[dict]
+        Sorted descending by mean importance. Each item contains:
+        - feature
+        - importance_mean
+        - importance_std
+    """
+    _validate_X_y(X, y)
+
+    if len(feature_names) != X.shape[1]:
+        raise ValueError(
+            f"feature_names length {len(feature_names)} does not match X.shape[1]={X.shape[1]}"
+        )
+
+    result = permutation_importance(
+        estimator=model,
+        X=X,
+        y=y,
+        scoring=scoring,
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=n_jobs,
+    )
+
+    rows = [
+        {
+            "feature": feature_names[i],
+            "importance_mean": float(result.importances_mean[i]),
+            "importance_std": float(result.importances_std[i]),
+        }
+        for i in range(len(feature_names))
+    ]
+    rows.sort(key=lambda row: row["importance_mean"], reverse=True)
+    return rows
 
 
 def summarize_split(split: SplitResult) -> dict[str, float | int]:
@@ -267,6 +332,8 @@ def _validate_X_y(X: np.ndarray, y: np.ndarray) -> None:
     if y.ndim != 1:
         raise ValueError(f"y must be 1D, got shape {y.shape}")
     if X.shape[0] != y.shape[0]:
-        raise ValueError(f"X and y must have same number of rows, got {X.shape[0]} and {y.shape[0]}")
+        raise ValueError(
+            f"X and y must have same number of rows, got {X.shape[0]} and {y.shape[0]}"
+        )
     if X.shape[0] == 0:
         raise ValueError("X and y must be non-empty")

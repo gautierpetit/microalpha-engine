@@ -1,7 +1,6 @@
 from __future__ import annotations
-from dataclasses import asdict
 
-from microalpha.config import load_experiment_config
+from microalpha.config import config_to_dict, load_experiment_config
 from microalpha.evaluation import (
     evaluate_binary_classifier,
     plot_confusion_matrix_comparison,
@@ -40,13 +39,15 @@ from microalpha.utils import (
 from microalpha.diagnostics import (
     flatten_feature_importance,
     flatten_pooled_ticker_metrics,
-    summarize_ticker_datasets,
     summarize_ticker_feature_diagnostics,
 )
 
 
 def main() -> None:
     cfg = load_experiment_config("config/experiment.yaml")
+
+    TOP_N_FEATURES_DISPLAY = 12
+    N_REPEATS_PERMUTATION_IMPORTANCE = 10
 
     symbols = [ticker.symbol for ticker in cfg.dataset.tickers]
     prefix = make_experiment_prefix(
@@ -63,7 +64,7 @@ def main() -> None:
     logger.info("Task: %s", cfg.task.name)
     logger.info("Tickers: %s", symbols)
 
-    save_json(asdict(cfg), dirs["root"] / "config.json")
+    save_json(config_to_dict(cfg), dirs["root"] / "config.json")
 
     datasets = []
     for ticker_cfg in cfg.dataset.tickers:
@@ -79,11 +80,6 @@ def main() -> None:
             dataset.label_summary["move_rate"],
         )
         datasets.append(dataset)
-
-    
-
-    dataset_diagnostics = summarize_ticker_datasets(datasets)
-    save_json(dataset_diagnostics, dirs["root"] / "ticker_dataset_diagnostics.json")
 
     feature_names = make_feature_names(cfg.features)
     feature_diagnostics = summarize_ticker_feature_diagnostics(datasets, feature_names)
@@ -109,7 +105,6 @@ def main() -> None:
         dirs["root"] / "ticker_summaries.json",
     )
     logger.info("Pooled split summary: %s", split_summary)
-
 
     logistic_model = train_model(
         X_train=split.X_train,
@@ -219,14 +214,14 @@ def main() -> None:
     )
     logger.info("Saved pooled per-ticker metrics")
 
-    N_REPEATS = 10
+    
     logistic_perm_importance = compute_permutation_importance(
         logistic_model,
         split.X_test,
         split.y_test,
         feature_names,
         scoring="roc_auc",
-        n_repeats=N_REPEATS,
+        n_repeats=N_REPEATS_PERMUTATION_IMPORTANCE,
         random_state=cfg.models.logistic.random_state,
         n_jobs=-1,
     )
@@ -236,7 +231,7 @@ def main() -> None:
         split.y_test,
         feature_names,
         scoring="roc_auc",
-        n_repeats=N_REPEATS,
+        n_repeats=N_REPEATS_PERMUTATION_IMPORTANCE,
         random_state=cfg.models.hist_gbdt.random_state,
         n_jobs=-1,
     )
@@ -245,7 +240,7 @@ def main() -> None:
         {
             "model_name": "logistic",
             "scoring": "roc_auc",
-            "n_repeats": N_REPEATS,
+            "n_repeats": N_REPEATS_PERMUTATION_IMPORTANCE,
             "importances": logistic_perm_importance,
         },
         dirs["root"] / "logistic_permutation_importance.json",
@@ -254,7 +249,7 @@ def main() -> None:
         {
             "model_name": "hist_gbdt",
             "scoring": "roc_auc",
-            "n_repeats": N_REPEATS,
+            "n_repeats": N_REPEATS_PERMUTATION_IMPORTANCE,
             "importances": hist_gbdt_perm_importance,
         },
         dirs["root"] / "hist_gbdt_permutation_importance.json",
@@ -296,7 +291,7 @@ def main() -> None:
         logistic_result,
         hist_gbdt_result,
         dirs["figures"] / "roc_comparison.png",
-        )
+    )
 
     plot_score_distribution_comparison(
         logistic_result,
@@ -311,18 +306,18 @@ def main() -> None:
     )
 
     logger.info("Saved evaluation plots")
-    TOP_N = 12
+    
     plot_feature_importance_barh(
         logistic_perm_importance,
         dirs["figures"] / "feature_importance_logistic.png",
         "Logistic Regression",
-        top_n=TOP_N,
+        top_n=TOP_N_FEATURES_DISPLAY,
     )
     plot_feature_importance_barh(
         hist_gbdt_perm_importance,
         dirs["figures"] / "feature_importance_hist_gbdt.png",
         "HistGradientBoosting",
-        top_n=TOP_N,
+        top_n=TOP_N_FEATURES_DISPLAY,
     )
     plot_model_metric_comparison(
         metrics,

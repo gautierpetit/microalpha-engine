@@ -37,23 +37,6 @@ def summarize_feature_matrix(
     return rows
 
 
-def summarize_ticker_datasets(
-    datasets: list[TickerDataset],
-) -> dict[str, Any]:
-    return {
-        "tickers": [
-            {
-                "symbol": ds.symbol,
-                "n_events": ds.n_events,
-                "n_samples": int(ds.X.shape[0]),
-                "n_features": int(ds.X.shape[1]),
-                **ds.label_summary,
-            }
-            for ds in datasets
-        ]
-    }
-
-
 def summarize_ticker_feature_diagnostics(
     datasets: list[TickerDataset],
     feature_names: list[str],

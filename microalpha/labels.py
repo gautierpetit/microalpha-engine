@@ -5,6 +5,7 @@ from typing import Literal
 
 import numpy as np
 
+
 @dataclass(frozen=True)
 class LabelResult:
     """
@@ -33,6 +34,7 @@ class LabelResult:
     n_final : int
         Number of final labels after applying valid_mask.
     """
+
     y: np.ndarray
     delta: np.ndarray
     valid_mask: np.ndarray
@@ -71,7 +73,9 @@ def compute_forward_midprice_delta(midprice: np.ndarray, horizon: int) -> np.nda
 def create_directional_labels(
     midprice: np.ndarray,
     horizon: int,
-    label_mode: Literal["binary_drop_ties", "binary_keep_ties_as_zero"] = "binary_drop_ties",
+    label_mode: Literal[
+        "binary_drop_ties", "binary_keep_ties_as_zero"
+    ] = "binary_drop_ties",
 ) -> LabelResult:
     """
     Create directional labels from forward midprice changes.
@@ -244,7 +248,7 @@ def align_features_with_labels(
             f"Feature row count mismatch: expected {n_expected}, got {features.shape[0]}"
         )
 
-    X_raw = features[:-label_result.horizon]
+    X_raw = features[: -label_result.horizon]
     X = X_raw[label_result.valid_mask]
     y = label_result.y
 

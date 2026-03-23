@@ -3,10 +3,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#include <sstream>
 #include <format>
 #include <stdexcept>
-#include <vector>
 
 namespace py = pybind11;
 

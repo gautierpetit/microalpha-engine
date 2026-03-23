@@ -38,18 +38,20 @@ def compute_features(
         ],
     )
 
-    core_df["ofi_roll_sum_50"] = core_df["ofi_best"].rolling(
-        cfg.ofi_window_raw, min_periods=1
-    ).sum()
+    core_df["ofi_roll_sum_50"] = (
+        core_df["ofi_best"].rolling(cfg.ofi_window_raw, min_periods=1).sum()
+    )
 
     for window in cfg.ofi_norm_windows:
-        core_df[f"ofi_best_norm_roll_sum_{window}"] = core_df["ofi_best_norm"].rolling(
-            window, min_periods=1
-        ).sum()
+        core_df[f"ofi_best_norm_roll_sum_{window}"] = (
+            core_df["ofi_best_norm"].rolling(window, min_periods=1).sum()
+        )
 
     midprice_series = pd.Series(midprice)
     mid_returns = midprice_series.diff().fillna(0.0)
-    core_df["midprice_vol_50"] = mid_returns.rolling(cfg.vol_window, min_periods=1).std().fillna(0.0)
+    core_df["midprice_vol_50"] = (
+        mid_returns.rolling(cfg.vol_window, min_periods=1).std().fillna(0.0)
+    )
 
     timestamps_dt = pd.to_datetime(timestamps, unit="s")
     event_count = pd.Series(1.0, index=timestamps_dt)

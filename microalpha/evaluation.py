@@ -10,7 +10,7 @@ from sklearn.metrics import (
     confusion_matrix,
     roc_auc_score,
     roc_curve,
-    auc
+    auc,
 )
 
 
@@ -153,8 +153,8 @@ def plot_per_ticker_auc_comparison(
 
 
 def plot_roc_comparison(
-    logistic_result,
-    hist_gbdt_result,
+    logistic_result: EvaluationResult,
+    hist_gbdt_result: EvaluationResult,
     out_path: Path,
 ) -> None:
     fpr_log, tpr_log, _ = roc_curve(logistic_result.y_true, logistic_result.y_proba)
@@ -177,8 +177,8 @@ def plot_roc_comparison(
 
 
 def plot_score_distribution_comparison(
-    logistic_result,
-    hist_gbdt_result,
+    logistic_result: EvaluationResult,
+    hist_gbdt_result: EvaluationResult,
     out_path: Path,
 ) -> None:
     fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
@@ -209,14 +209,13 @@ def plot_score_distribution_comparison(
 
 
 def plot_confusion_matrix_comparison(
-    logistic_result,
-    hist_gbdt_result,
+    logistic_result: EvaluationResult,
+    hist_gbdt_result: EvaluationResult,
     out_path: Path,
 ) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
     cm_log = logistic_result.confusion_matrix
-    im0 = axes[0].imshow(cm_log, interpolation="nearest")
     axes[0].set_title("Logistic Regression")
     axes[0].set_xlabel("Predicted label")
     axes[0].set_ylabel("True label")
@@ -227,7 +226,6 @@ def plot_confusion_matrix_comparison(
             axes[0].text(j, i, str(cm_log[i, j]), ha="center", va="center")
 
     cm_gbdt = hist_gbdt_result.confusion_matrix
-    im1 = axes[1].imshow(cm_gbdt, interpolation="nearest")
     axes[1].set_title("HistGradientBoosting")
     axes[1].set_xlabel("Predicted label")
     axes[1].set_ylabel("True label")

@@ -35,7 +35,9 @@ def ensure_dir(path: str | Path) -> Path:
     return path
 
 
-def make_artifact_dirs(run_id: str, base_dir: str | Path = "artifacts") -> dict[str, Path]:
+def make_artifact_dirs(
+    run_id: str, base_dir: str | Path = "artifacts"
+) -> dict[str, Path]:
     root = ensure_dir(Path(base_dir) / run_id)
     figures = ensure_dir(root / "figures")
     logs = ensure_dir(root / "logs")
@@ -50,7 +52,9 @@ def make_artifact_dirs(run_id: str, base_dir: str | Path = "artifacts") -> dict[
     }
 
 
-def setup_logger(log_path: str | Path, logger_name: str = "microalpha") -> logging.Logger:
+def setup_logger(
+    log_path: str | Path, logger_name: str = "microalpha"
+) -> logging.Logger:
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
@@ -88,6 +92,7 @@ def stringify_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         else:
             out[k] = v
     return out
+
 
 def save_rows_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
     import pandas as pd

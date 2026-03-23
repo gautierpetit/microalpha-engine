@@ -123,7 +123,7 @@ def build_hist_gbdt_model(
     random_state: int = 42,
 ):
     """
-    Build standardized HistGradientBoostingClassifier.
+    Build HistGradientBoostingClassifier for tabular nonlinear classification.
     """
     # HistGradientBoosting does not need feature scaling
     return HistGradientBoostingClassifier(
@@ -247,6 +247,7 @@ def get_logistic_coefficients(
     pairs = list(zip(feature_names, coef_1d.tolist()))
     pairs.sort(key=lambda x: abs(x[1]), reverse=True)
     return pairs
+
 
 def save_trained_model(model, out_path: str | Path) -> None:
     """

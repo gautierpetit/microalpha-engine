@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -104,3 +104,7 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
             hist_gbdt=HistGBDTConfig(**raw["models"]["hist_gbdt"]),
         ),
     )
+
+
+def config_to_dict(cfg: ExperimentConfig) -> dict:
+    return asdict(cfg)

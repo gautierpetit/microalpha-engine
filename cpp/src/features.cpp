@@ -39,9 +39,10 @@ inline double compute_best_level_ofi(
     if (bid_p_curr > bid_p_prev) {
         delta_bid = bid_q_curr;
     } else if (bid_p_curr == bid_p_prev) {
-    // Exact comparison is intentional:
-    // LOBSTER prices originate from discrete integer ticks and scaling preserves 
-    // equality for this pipeline, so same-price events can be treated exactly.
+        // Exact comparison is intentional:
+        // LOBSTER prices originate from discrete integer ticks and scaling
+        // preserves equality for this pipeline, so same-price events can be
+        // treated exactly.
         delta_bid = bid_q_curr - bid_q_prev;
     } else {  // bid_p_curr < bid_p_prev
         delta_bid = -bid_q_prev;

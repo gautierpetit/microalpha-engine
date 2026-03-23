@@ -5,10 +5,12 @@ from microalpha.config import load_experiment_config
 from microalpha.evaluation import (
     evaluate_binary_classifier,
     plot_confusion_matrix,
-    plot_feature_importance_barh,
+    plot_model_metric_comparison,
+    plot_per_ticker_auc_comparison,
     plot_roc_curve,
     plot_score_distribution,
     summarize_evaluation,
+    plot_feature_importance_barh,
 )
 from microalpha.features import make_feature_names
 from microalpha.models import (
@@ -31,8 +33,16 @@ from microalpha.utils import (
     make_experiment_prefix,
     make_run_id,
     save_json,
+    save_rows_csv,
     setup_logger,
     stringify_metrics,
+)
+from microalpha.diagnostics import (
+    flatten_feature_importance,
+    flatten_pooled_ticker_metrics,
+    summarize_ticker_datasets,
+    summarize_ticker_feature_diagnostics,
+    summarize_ticker_split_diagnostics,
 )
 
 
@@ -71,6 +81,16 @@ def main() -> None:
         )
         datasets.append(dataset)
 
+        feature_names = make_feature_names(cfg.features)
+
+    dataset_diagnostics = summarize_ticker_datasets(datasets)
+    save_json(dataset_diagnostics, dirs["root"] / "ticker_dataset_diagnostics.json")
+
+    feature_diagnostics = summarize_ticker_feature_diagnostics(datasets, feature_names)
+    save_json(feature_diagnostics, dirs["root"] / "ticker_feature_diagnostics.json")
+
+    logger.info("Saved dataset and feature diagnostics")
+
     split, ticker_splits = split_and_pool_datasets(
         datasets=datasets,
         train_fraction=cfg.split.train_fraction,
@@ -89,6 +109,10 @@ def main() -> None:
         dirs["root"] / "ticker_summaries.json",
     )
     logger.info("Pooled split summary: %s", split_summary)
+
+    split_diagnostics = summarize_ticker_split_diagnostics(ticker_splits)
+    save_json(split_diagnostics, dirs["root"] / "ticker_split_diagnostics.json")
+    logger.info("Saved split diagnostics")
 
     logistic_model = train_model(
         X_train=split.X_train,
@@ -170,11 +194,15 @@ def main() -> None:
                 "symbol": ticker_split.symbol,
                 "n_test": ticker_split.split.n_test,
                 "test_pos_rate": float(ticker_split.split.y_test.mean()),
-                "logistic": stringify_metrics(summarize_evaluation(logistic_result_ticker)),
-                "hist_gbdt": stringify_metrics(summarize_evaluation(hist_gbdt_result_ticker)),
+                "logistic": stringify_metrics(
+                    summarize_evaluation(logistic_result_ticker)
+                ),
+                "hist_gbdt": stringify_metrics(
+                    summarize_evaluation(hist_gbdt_result_ticker)
+                ),
             }
         )
-    
+
     total_segment_n = sum(ts.split.n_test for ts in ticker_splits)
     if total_segment_n != split.y_test.shape[0]:
         raise ValueError(
@@ -186,7 +214,13 @@ def main() -> None:
         pooled_ticker_metrics,
         dirs["root"] / "pooled_ticker_metrics.json",
     )
-    logger.info("Saved pooled per-ticker metrics")    
+
+    pooled_ticker_rows = flatten_pooled_ticker_metrics(pooled_ticker_metrics)
+    save_rows_csv(
+        pooled_ticker_rows,
+        dirs["root"] / "pooled_ticker_metrics.csv",
+    )
+    logger.info("Saved pooled per-ticker metrics")
 
     feature_names = make_feature_names(cfg.features)
 
@@ -229,6 +263,25 @@ def main() -> None:
             "importances": hist_gbdt_perm_importance,
         },
         dirs["root"] / "hist_gbdt_permutation_importance.json",
+    )
+    save_rows_csv(
+        flatten_feature_importance(
+            {
+                "model_name": "logistic",
+                "importances": logistic_perm_importance,
+            }
+        ),
+        dirs["root"] / "logistic_permutation_importance.csv",
+    )
+
+    save_rows_csv(
+        flatten_feature_importance(
+            {
+                "model_name": "hist_gbdt",
+                "importances": hist_gbdt_perm_importance,
+            }
+        ),
+        dirs["root"] / "hist_gbdt_permutation_importance.csv",
     )
     logger.info("Saved permutation importance artifacts")
 
@@ -294,6 +347,21 @@ def main() -> None:
         "HistGradientBoosting",
         top_n=TOP_N,
     )
+    plot_model_metric_comparison(
+        metrics,
+        dirs["figures"] / "model_comparison_roc_auc.png",
+        metric_name="roc_auc",
+    )
+    plot_model_metric_comparison(
+        metrics,
+        dirs["figures"] / "model_comparison_accuracy.png",
+        metric_name="accuracy",
+    )
+    plot_per_ticker_auc_comparison(
+        pooled_ticker_metrics,
+        dirs["figures"] / "per_ticker_auc_comparison.png",
+    )
+    logger.info("Saved comparison charts")
     logger.info("Saved feature importance plots")
 
     logger.info("Experiment complete: %s", run_id)

@@ -189,3 +189,44 @@ def _validate_eval_inputs(
         raise ValueError(
             f"Input length mismatch: len(y_true)={n}, len(y_pred)={y_pred.shape[0]}, len(y_proba)={y_proba.shape[0]}"
         )
+
+
+def plot_model_metric_comparison(
+    metrics_payload: dict,
+    out_path: Path,
+    *,
+    metric_name: str = "roc_auc",
+) -> None:
+    model_names = ["logistic", "hist_gbdt"]
+    values = [float(metrics_payload[m][metric_name]) for m in model_names]
+
+    plt.figure(figsize=(7, 5))
+    plt.bar(model_names, values)
+    plt.ylabel(metric_name.upper())
+    plt.title(f"Model Comparison - {metric_name.upper()}")
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+
+
+def plot_per_ticker_auc_comparison(
+    pooled_ticker_metrics: dict,
+    out_path: Path,
+) -> None:
+    tickers = [row["symbol"] for row in pooled_ticker_metrics["tickers"]]
+    logistic_auc = [float(row["logistic"]["roc_auc"]) for row in pooled_ticker_metrics["tickers"]]
+    hist_auc = [float(row["hist_gbdt"]["roc_auc"]) for row in pooled_ticker_metrics["tickers"]]
+
+    x = np.arange(len(tickers))
+    width = 0.38
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(x - width / 2, logistic_auc, width, label="logistic")
+    plt.bar(x + width / 2, hist_auc, width, label="hist_gbdt")
+    plt.xticks(x, tickers)
+    plt.ylabel("ROC AUC")
+    plt.title("Per-Ticker ROC AUC (Pooled-Trained Models)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150)
+    plt.close()

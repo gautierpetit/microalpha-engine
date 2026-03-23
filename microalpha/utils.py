@@ -86,3 +86,9 @@ def stringify_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         else:
             out[k] = v
     return out
+
+def save_rows_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
+    import pandas as pd
+
+    path = Path(path)
+    pd.DataFrame(rows).to_csv(path, index=False)

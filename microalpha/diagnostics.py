@@ -3,9 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-import pandas as pd
 
-from microalpha.pipeline import TickerDataset, TickerSplit
+from microalpha.pipeline import TickerDataset
 
 
 def summarize_feature_matrix(
@@ -72,25 +71,6 @@ def summarize_ticker_feature_diagnostics(
     }
 
 
-def summarize_ticker_split_diagnostics(
-    ticker_splits: list[TickerSplit],
-) -> dict[str, Any]:
-    return {
-        "tickers": [
-            {
-                "symbol": ts.symbol,
-                "n_events": ts.n_events,
-                "n_train": ts.split.n_train,
-                "n_test": ts.split.n_test,
-                "train_pos_rate": float(np.mean(ts.split.y_train)),
-                "test_pos_rate": float(np.mean(ts.split.y_test)),
-                **ts.label_summary,
-            }
-            for ts in ticker_splits
-        ]
-    }
-
-
 def flatten_pooled_ticker_metrics(
     pooled_ticker_metrics: dict[str, Any],
 ) -> list[dict[str, Any]]:
@@ -122,9 +102,3 @@ def flatten_feature_importance(
         }
         for row in importance_payload["importances"]
     ]
-
-
-def rows_to_csv(rows: list[dict[str, Any]], out_path: str) -> None:
-    if not rows:
-        raise ValueError("rows must be non-empty")
-    pd.DataFrame(rows).to_csv(out_path, index=False)

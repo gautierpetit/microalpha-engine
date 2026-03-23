@@ -4,13 +4,13 @@ from dataclasses import asdict
 from microalpha.config import load_experiment_config
 from microalpha.evaluation import (
     evaluate_binary_classifier,
-    plot_confusion_matrix,
+    plot_confusion_matrix_comparison,
+    plot_feature_importance_barh,
     plot_model_metric_comparison,
     plot_per_ticker_auc_comparison,
-    plot_roc_curve,
-    plot_score_distribution,
+    plot_roc_comparison,
+    plot_score_distribution_comparison,
     summarize_evaluation,
-    plot_feature_importance_barh,
 )
 from microalpha.features import make_feature_names
 from microalpha.models import (
@@ -42,7 +42,6 @@ from microalpha.diagnostics import (
     flatten_pooled_ticker_metrics,
     summarize_ticker_datasets,
     summarize_ticker_feature_diagnostics,
-    summarize_ticker_split_diagnostics,
 )
 
 
@@ -81,11 +80,12 @@ def main() -> None:
         )
         datasets.append(dataset)
 
-        feature_names = make_feature_names(cfg.features)
+    
 
     dataset_diagnostics = summarize_ticker_datasets(datasets)
     save_json(dataset_diagnostics, dirs["root"] / "ticker_dataset_diagnostics.json")
 
+    feature_names = make_feature_names(cfg.features)
     feature_diagnostics = summarize_ticker_feature_diagnostics(datasets, feature_names)
     save_json(feature_diagnostics, dirs["root"] / "ticker_feature_diagnostics.json")
 
@@ -110,9 +110,6 @@ def main() -> None:
     )
     logger.info("Pooled split summary: %s", split_summary)
 
-    split_diagnostics = summarize_ticker_split_diagnostics(ticker_splits)
-    save_json(split_diagnostics, dirs["root"] / "ticker_split_diagnostics.json")
-    logger.info("Saved split diagnostics")
 
     logistic_model = train_model(
         X_train=split.X_train,
@@ -218,11 +215,9 @@ def main() -> None:
     pooled_ticker_rows = flatten_pooled_ticker_metrics(pooled_ticker_metrics)
     save_rows_csv(
         pooled_ticker_rows,
-        dirs["root"] / "pooled_ticker_metrics.csv",
+        dirs["tables"] / "pooled_ticker_metrics.csv",
     )
     logger.info("Saved pooled per-ticker metrics")
-
-    feature_names = make_feature_names(cfg.features)
 
     N_REPEATS = 10
     logistic_perm_importance = compute_permutation_importance(
@@ -271,7 +266,7 @@ def main() -> None:
                 "importances": logistic_perm_importance,
             }
         ),
-        dirs["root"] / "logistic_permutation_importance.csv",
+        dirs["tables"] / "logistic_permutation_importance.csv",
     )
 
     save_rows_csv(
@@ -281,7 +276,7 @@ def main() -> None:
                 "importances": hist_gbdt_perm_importance,
             }
         ),
-        dirs["root"] / "hist_gbdt_permutation_importance.csv",
+        dirs["tables"] / "hist_gbdt_permutation_importance.csv",
     )
     logger.info("Saved permutation importance artifacts")
 
@@ -297,40 +292,22 @@ def main() -> None:
     )
     logger.info("Saved logistic coefficients")
 
-    plot_roc_curve(
-        split.y_test,
-        logistic_result.y_proba,
-        dirs["figures"] / "roc_logistic.png",
-        f"Logistic Regression ({cfg.task.name})",
-    )
-    plot_score_distribution(
-        split.y_test,
-        logistic_result.y_proba,
-        dirs["figures"] / "score_distribution_logistic.png",
-        f"Logistic Regression ({cfg.task.name})",
-    )
-    plot_confusion_matrix(
-        logistic_result.confusion_matrix,
-        dirs["figures"] / "confusion_matrix_logistic.png",
-        f"Logistic Regression ({cfg.task.name})",
+    plot_roc_comparison(
+        logistic_result,
+        hist_gbdt_result,
+        dirs["figures"] / "roc_comparison.png",
+        )
+
+    plot_score_distribution_comparison(
+        logistic_result,
+        hist_gbdt_result,
+        dirs["figures"] / "score_distribution_comparison.png",
     )
 
-    plot_roc_curve(
-        split.y_test,
-        hist_gbdt_result.y_proba,
-        dirs["figures"] / "roc_hist_gbdt.png",
-        f"HistGradientBoosting ({cfg.task.name})",
-    )
-    plot_score_distribution(
-        split.y_test,
-        hist_gbdt_result.y_proba,
-        dirs["figures"] / "score_distribution_hist_gbdt.png",
-        f"HistGradientBoosting ({cfg.task.name})",
-    )
-    plot_confusion_matrix(
-        hist_gbdt_result.confusion_matrix,
-        dirs["figures"] / "confusion_matrix_hist_gbdt.png",
-        f"HistGradientBoosting ({cfg.task.name})",
+    plot_confusion_matrix_comparison(
+        logistic_result,
+        hist_gbdt_result,
+        dirs["figures"] / "confusion_matrix_comparison.png",
     )
 
     logger.info("Saved evaluation plots")
@@ -352,11 +329,7 @@ def main() -> None:
         dirs["figures"] / "model_comparison_roc_auc.png",
         metric_name="roc_auc",
     )
-    plot_model_metric_comparison(
-        metrics,
-        dirs["figures"] / "model_comparison_accuracy.png",
-        metric_name="accuracy",
-    )
+
     plot_per_ticker_auc_comparison(
         pooled_ticker_metrics,
         dirs["figures"] / "per_ticker_auc_comparison.png",

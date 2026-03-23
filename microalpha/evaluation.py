@@ -10,6 +10,7 @@ from sklearn.metrics import (
     confusion_matrix,
     roc_auc_score,
     roc_curve,
+    auc
 )
 
 
@@ -19,6 +20,7 @@ class EvaluationResult:
     accuracy: float
     roc_auc: float
     confusion_matrix: np.ndarray
+    y_true: np.ndarray
     y_pred: np.ndarray
     y_proba: np.ndarray
 
@@ -58,6 +60,7 @@ def evaluate_binary_classifier(
         accuracy=acc,
         roc_auc=auc,
         confusion_matrix=cm,
+        y_true=y_true,
         y_pred=y_pred,
         y_proba=y_proba,
     )
@@ -72,74 +75,6 @@ def summarize_evaluation(result: EvaluationResult) -> dict[str, float | str]:
         "accuracy": result.accuracy,
         "roc_auc": result.roc_auc,
     }
-
-
-def plot_roc_curve(
-    y_true: np.ndarray,
-    y_proba: np.ndarray,
-    out_path: Path,
-    model_name: str,
-) -> None:
-    """
-    Save ROC curve plot.
-    """
-    fpr, tpr, _ = roc_curve(y_true, y_proba)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, label=model_name)
-    plt.plot([0, 1], [0, 1], linestyle="--")
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title(f"ROC Curve - {model_name}")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150)
-    plt.close()
-
-
-def plot_score_distribution(
-    y_true: np.ndarray,
-    y_proba: np.ndarray,
-    out_path: Path,
-    model_name: str,
-) -> None:
-    """
-    Save predicted score distributions split by true class.
-    """
-    plt.figure(figsize=(10, 6))
-    plt.hist(y_proba[y_true == 0], bins=100, alpha=0.7, label="True class = 0")
-    plt.hist(y_proba[y_true == 1], bins=100, alpha=0.7, label="True class = 1")
-    plt.xlabel("Predicted probability of up move")
-    plt.ylabel("Count")
-    plt.title(f"Score Distribution - {model_name}")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150)
-    plt.close()
-
-
-def plot_confusion_matrix(
-    cm: np.ndarray,
-    out_path: Path,
-    model_name: str,
-) -> None:
-    """
-    Save confusion matrix heatmap using matplotlib only.
-    """
-    plt.figure(figsize=(6, 5))
-    plt.imshow(cm, aspect="auto")
-    plt.colorbar(label="Count")
-    plt.xticks([0, 1], ["Pred 0", "Pred 1"])
-    plt.yticks([0, 1], ["True 0", "True 1"])
-    plt.title(f"Confusion Matrix - {model_name}")
-
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            plt.text(j, i, str(cm[i, j]), ha="center", va="center")
-
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=150)
-    plt.close()
 
 
 def plot_feature_importance_barh(
@@ -172,25 +107,6 @@ def plot_feature_importance_barh(
     plt.close()
 
 
-def _validate_eval_inputs(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    y_proba: np.ndarray,
-) -> None:
-    if y_true.ndim != 1:
-        raise ValueError(f"y_true must be 1D, got shape {y_true.shape}")
-    if y_pred.ndim != 1:
-        raise ValueError(f"y_pred must be 1D, got shape {y_pred.shape}")
-    if y_proba.ndim != 1:
-        raise ValueError(f"y_proba must be 1D, got shape {y_proba.shape}")
-
-    n = y_true.shape[0]
-    if y_pred.shape[0] != n or y_proba.shape[0] != n:
-        raise ValueError(
-            f"Input length mismatch: len(y_true)={n}, len(y_pred)={y_pred.shape[0]}, len(y_proba)={y_proba.shape[0]}"
-        )
-
-
 def plot_model_metric_comparison(
     metrics_payload: dict,
     out_path: Path,
@@ -214,8 +130,12 @@ def plot_per_ticker_auc_comparison(
     out_path: Path,
 ) -> None:
     tickers = [row["symbol"] for row in pooled_ticker_metrics["tickers"]]
-    logistic_auc = [float(row["logistic"]["roc_auc"]) for row in pooled_ticker_metrics["tickers"]]
-    hist_auc = [float(row["hist_gbdt"]["roc_auc"]) for row in pooled_ticker_metrics["tickers"]]
+    logistic_auc = [
+        float(row["logistic"]["roc_auc"]) for row in pooled_ticker_metrics["tickers"]
+    ]
+    hist_auc = [
+        float(row["hist_gbdt"]["roc_auc"]) for row in pooled_ticker_metrics["tickers"]
+    ]
 
     x = np.arange(len(tickers))
     width = 0.38
@@ -230,3 +150,113 @@ def plot_per_ticker_auc_comparison(
     plt.tight_layout()
     plt.savefig(out_path, dpi=150)
     plt.close()
+
+
+def plot_roc_comparison(
+    logistic_result,
+    hist_gbdt_result,
+    out_path: Path,
+) -> None:
+    fpr_log, tpr_log, _ = roc_curve(logistic_result.y_true, logistic_result.y_proba)
+    auc_log = auc(fpr_log, tpr_log)
+
+    fpr_gbdt, tpr_gbdt, _ = roc_curve(hist_gbdt_result.y_true, hist_gbdt_result.y_proba)
+    auc_gbdt = auc(fpr_gbdt, tpr_gbdt)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr_log, tpr_log, label=f"Logistic (AUC={auc_log:.3f})")
+    plt.plot(fpr_gbdt, tpr_gbdt, label=f"HistGBDT (AUC={auc_gbdt:.3f})")
+    plt.plot([0, 1], [0, 1], linestyle="--", linewidth=1)
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve Comparison")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+
+
+def plot_score_distribution_comparison(
+    logistic_result,
+    hist_gbdt_result,
+    out_path: Path,
+) -> None:
+    fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
+
+    y_true_log = logistic_result.y_true
+    y_proba_log = logistic_result.y_proba
+
+    axes[0].hist(y_proba_log[y_true_log == 0], bins=50, alpha=0.7, label="Class 0")
+    axes[0].hist(y_proba_log[y_true_log == 1], bins=50, alpha=0.7, label="Class 1")
+    axes[0].set_title("Logistic Regression")
+    axes[0].set_ylabel("Count")
+    axes[0].legend()
+
+    y_true_gbdt = hist_gbdt_result.y_true
+    y_proba_gbdt = hist_gbdt_result.y_proba
+
+    axes[1].hist(y_proba_gbdt[y_true_gbdt == 0], bins=50, alpha=0.7, label="Class 0")
+    axes[1].hist(y_proba_gbdt[y_true_gbdt == 1], bins=50, alpha=0.7, label="Class 1")
+    axes[1].set_title("HistGradientBoosting")
+    axes[1].set_xlabel("Predicted Probability")
+    axes[1].set_ylabel("Count")
+    axes[1].legend()
+
+    fig.suptitle("Score Distribution Comparison")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def plot_confusion_matrix_comparison(
+    logistic_result,
+    hist_gbdt_result,
+    out_path: Path,
+) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+    cm_log = logistic_result.confusion_matrix
+    im0 = axes[0].imshow(cm_log, interpolation="nearest")
+    axes[0].set_title("Logistic Regression")
+    axes[0].set_xlabel("Predicted label")
+    axes[0].set_ylabel("True label")
+    axes[0].set_xticks([0, 1])
+    axes[0].set_yticks([0, 1])
+    for i in range(cm_log.shape[0]):
+        for j in range(cm_log.shape[1]):
+            axes[0].text(j, i, str(cm_log[i, j]), ha="center", va="center")
+
+    cm_gbdt = hist_gbdt_result.confusion_matrix
+    im1 = axes[1].imshow(cm_gbdt, interpolation="nearest")
+    axes[1].set_title("HistGradientBoosting")
+    axes[1].set_xlabel("Predicted label")
+    axes[1].set_ylabel("True label")
+    axes[1].set_xticks([0, 1])
+    axes[1].set_yticks([0, 1])
+    for i in range(cm_gbdt.shape[0]):
+        for j in range(cm_gbdt.shape[1]):
+            axes[1].text(j, i, str(cm_gbdt[i, j]), ha="center", va="center")
+
+    fig.suptitle("Confusion Matrix Comparison")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def _validate_eval_inputs(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    y_proba: np.ndarray,
+) -> None:
+    if y_true.ndim != 1:
+        raise ValueError(f"y_true must be 1D, got shape {y_true.shape}")
+    if y_pred.ndim != 1:
+        raise ValueError(f"y_pred must be 1D, got shape {y_pred.shape}")
+    if y_proba.ndim != 1:
+        raise ValueError(f"y_proba must be 1D, got shape {y_proba.shape}")
+
+    n = y_true.shape[0]
+    if y_pred.shape[0] != n or y_proba.shape[0] != n:
+        raise ValueError(
+            f"Input length mismatch: len(y_true)={n}, len(y_pred)={y_pred.shape[0]}, len(y_proba)={y_proba.shape[0]}"
+        )

@@ -40,11 +40,13 @@ def make_artifact_dirs(run_id: str, base_dir: str | Path = "artifacts") -> dict[
     figures = ensure_dir(root / "figures")
     logs = ensure_dir(root / "logs")
     models = ensure_dir(root / "models")
+    tables = ensure_dir(root / "tables")
     return {
         "root": root,
         "figures": figures,
         "logs": logs,
         "models": models,
+        "tables": tables,
     }
 
 

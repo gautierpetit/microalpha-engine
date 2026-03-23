@@ -19,11 +19,11 @@ dataset:
       orderbook_csv: data/raw/LOBSTER_SampleFile_MSFT_2012-06-21_10/MSFT_2012-06-21_34200000_57600000_orderbook_10.csv
 
 task:
-  name: direction # ["direction", "movement"]
+  name: direction  # direction | movement
 
 labels:
   horizon: 500
-  label_mode: binary_drop_ties # if movement use "binary" otherwise "binary_drop_ties or "binary_keep_ties_as_zero"
+  label_mode: binary_drop_ties  # direction: binary_drop_ties | binary_keep_ties_as_zero; movement: binary
 
 features:
   ofi_window_raw: 50

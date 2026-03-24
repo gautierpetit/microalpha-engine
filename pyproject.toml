@@ -4,10 +4,40 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microalpha"
-version = "0.1.0"
+version = "1.0"
 description = "Event-driven market microstructure research engine"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [
+    { name = "Gautier Petit" }
+]
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "matplotlib>=3.8",
+    "scikit-learn>=1.5",
+    "PyYAML>=6.0",
+    "joblib>=1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.urls]
+Repository = "https://github.com/gautierpetit/microalpha-engine"
 
 [tool.setuptools.packages.find]
 include = ["microalpha*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

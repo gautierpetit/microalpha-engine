@@ -256,5 +256,6 @@ def _validate_eval_inputs(
     n = y_true.shape[0]
     if y_pred.shape[0] != n or y_proba.shape[0] != n:
         raise ValueError(
-            f"Input length mismatch: len(y_true)={n}, len(y_pred)={y_pred.shape[0]}, len(y_proba)={y_proba.shape[0]}"
+            f"Input length mismatch: len(y_true)={n}, "
+            f"len(y_pred)={y_pred.shape[0]}, len(y_proba)={y_proba.shape[0]}"
         )

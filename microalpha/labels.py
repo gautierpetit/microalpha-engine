@@ -119,7 +119,7 @@ def create_directional_labels(
     else:
         raise ValueError(
             f"Unsupported direction label_mode={label_mode!r}. "
-            "Expected 'binary_drop_ties' or 'binary_keep_ties_as_zero'."
+            f"Expected 'binary_drop_ties' or 'binary_keep_ties_as_zero'."
         )
 
     return LabelResult(
@@ -245,7 +245,8 @@ def align_features_with_labels(
     n_expected = label_result.n_raw + label_result.horizon
     if features.shape[0] != n_expected:
         raise ValueError(
-            f"Feature row count mismatch: expected {n_expected}, got {features.shape[0]}"
+            f"Feature row count mismatch: expected {n_expected}, "
+            f"got {features.shape[0]}"
         )
 
     X_raw = features[: -label_result.horizon]
@@ -254,7 +255,8 @@ def align_features_with_labels(
 
     if X.shape[0] != y.shape[0]:
         raise ValueError(
-            f"Aligned feature/label mismatch: X has {X.shape[0]} rows, y has {y.shape[0]}"
+            f"Aligned feature/label mismatch: X has {X.shape[0]} rows, "
+            f"y has {y.shape[0]}"
         )
 
     return X, y
@@ -291,5 +293,6 @@ def _validate_midprice_and_horizon(midprice: np.ndarray, horizon: int) -> None:
         raise ValueError("horizon must be positive")
     if midprice.shape[0] <= horizon:
         raise ValueError(
-            f"midprice length must be greater than horizon; got len={midprice.shape[0]}, horizon={horizon}"
+            "midprice length must be greater than horizon; "
+            f"got len={midprice.shape[0]}, horizon={horizon}"
         )

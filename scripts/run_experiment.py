@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 from microalpha.config import config_to_dict, load_experiment_config
+from microalpha.diagnostics import (
+    flatten_feature_importance,
+    flatten_pooled_ticker_metrics,
+    summarize_ticker_feature_diagnostics,
+)
 from microalpha.evaluation import (
     evaluate_binary_classifier,
     plot_confusion_matrix_comparison,
@@ -36,11 +41,6 @@ from microalpha.utils import (
     setup_logger,
     stringify_metrics,
 )
-from microalpha.diagnostics import (
-    flatten_feature_importance,
-    flatten_pooled_ticker_metrics,
-    summarize_ticker_feature_diagnostics,
-)
 
 
 def main() -> None:
@@ -71,7 +71,8 @@ def main() -> None:
         logger.info("Building dataset for %s", ticker_cfg.symbol)
         dataset = build_ticker_dataset(ticker_cfg=ticker_cfg, cfg=cfg)
         logger.info(
-            "Built dataset for %s: n_events=%s, X shape=%s, y shape=%s, tie_rate=%.6f, move_rate=%.6f",
+            "Built dataset for %s: n_events=%s, X shape=%s, y shape=%s, "
+            "tie_rate=%.6f, move_rate=%.6f",
             dataset.symbol,
             dataset.n_events,
             dataset.X.shape,
@@ -214,7 +215,6 @@ def main() -> None:
     )
     logger.info("Saved pooled per-ticker metrics")
 
-    
     logistic_perm_importance = compute_permutation_importance(
         logistic_model,
         split.X_test,
@@ -306,7 +306,7 @@ def main() -> None:
     )
 
     logger.info("Saved evaluation plots")
-    
+
     plot_feature_importance_barh(
         logistic_perm_importance,
         dirs["figures"] / "feature_importance_logistic.png",

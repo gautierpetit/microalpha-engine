@@ -3,8 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from microalpha.config import FeatureConfig
 from microalpha._cpp import compute_features_series
+from microalpha.config import FeatureConfig
 
 
 def compute_features(
@@ -56,7 +56,9 @@ def compute_features(
     timestamps_dt = pd.to_datetime(timestamps, unit="s")
     event_count = pd.Series(1.0, index=timestamps_dt)
     intensity = event_count.rolling(cfg.intensity_window).sum()
-    core_df[f"event_intensity_{cfg.intensity_window}"] = intensity.to_numpy(dtype=np.float64)
+    core_df[f"event_intensity_{cfg.intensity_window}"] = intensity.to_numpy(
+        dtype=np.float64
+    )
 
     return core_df.to_numpy(dtype=np.float64)
 
@@ -75,6 +77,8 @@ def make_feature_names(cfg: FeatureConfig) -> list[str]:
     ]
 
     names.extend([f"ofi_best_norm_roll_sum_{w}" for w in cfg.ofi_norm_windows])
-    names.extend([f"midprice_vol_{cfg.vol_window}", f"event_intensity_{cfg.intensity_window}"])
+    names.extend(
+        [f"midprice_vol_{cfg.vol_window}", f"event_intensity_{cfg.intensity_window}"]
+    )
 
     return names

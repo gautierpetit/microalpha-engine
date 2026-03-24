@@ -17,7 +17,8 @@ def summarize_feature_matrix(
         raise ValueError(f"X must be 2D, got shape {X.shape}")
     if len(feature_names) != X.shape[1]:
         raise ValueError(
-            f"feature_names length {len(feature_names)} does not match X.shape[1]={X.shape[1]}"
+            f"feature_names length {len(feature_names)} does not match " 
+            f"X.shape[1]={X.shape[1]}"
         )
 
     rows: list[dict[str, float | str]] = []

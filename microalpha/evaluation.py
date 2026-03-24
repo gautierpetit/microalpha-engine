@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import (
     accuracy_score,
+    auc,
     confusion_matrix,
     roc_auc_score,
     roc_curve,
-    auc,
 )
 
 

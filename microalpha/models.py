@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 
 import joblib
 import numpy as np
-from sklearn.inspection import permutation_importance
 from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
 
 ModelName = Literal["logistic", "hist_gbdt"]
 
@@ -66,7 +65,8 @@ def time_train_test_split(
 
     if split_idx <= 0 or split_idx >= n:
         raise ValueError(
-            f"Invalid split_idx={split_idx} for n={n}. Check train_fraction={train_fraction}."
+            f"Invalid split_idx={split_idx} for n={n}. "
+            f"Check train_fraction={train_fraction}."
         )
 
     X_train = X[:split_idx]
@@ -181,7 +181,8 @@ def train_model(
 
     else:
         raise ValueError(
-            f"Unsupported model_name={model_name!r}. Expected 'logistic' or 'hist_gbdt'."
+            f"Unsupported model_name={model_name!r}. "
+            f"Expected 'logistic' or 'hist_gbdt'."
         )
 
     model.fit(X_train, y_train)
@@ -199,7 +200,8 @@ def predict_probabilities(model, X: np.ndarray) -> np.ndarray:
 
     if proba.ndim != 2 or proba.shape[1] != 2:
         raise ValueError(
-            f"Expected binary-class probability matrix of shape (N, 2), got {proba.shape}"
+            f"Expected binary-class probability matrix of shape (N, 2),"
+            f" got {proba.shape}"
         )
 
     return proba[:, 1]

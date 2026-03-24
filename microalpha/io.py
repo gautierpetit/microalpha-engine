@@ -31,8 +31,8 @@ def load_lobster(
     expected_orderbook_cols = 4 * levels
     if orderbook_df.shape[1] != expected_orderbook_cols:
         raise ValueError(
-            f"Expected {expected_orderbook_cols} order book columns for {levels} levels, "
-            f"got {orderbook_df.shape[1]}"
+            f"Expected {expected_orderbook_cols} order book columns for {levels} "
+            f"levels, got {orderbook_df.shape[1]}"
         )
 
     if len(message_df) != len(orderbook_df):

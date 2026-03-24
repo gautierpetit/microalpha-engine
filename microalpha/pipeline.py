@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Iterator
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -126,7 +126,8 @@ def iter_ticker_test_segments(
     the pooled test arrays.
 
     Assumes pooled X_test / y_test were built by concatenating ticker test sets
-    in the same order as `ticker_splits`, which is how split_and_pool_datasets() behaves.
+    in the same order as `ticker_splits`, which is how split_and_pool_datasets
+    () behaves.
     """
     start = 0
     for ticker_split in ticker_splits:

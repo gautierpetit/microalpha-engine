@@ -243,7 +243,8 @@ def get_logistic_coefficients(
 
     if len(feature_names) != coef_1d.shape[0]:
         raise ValueError(
-            f"feature_names length {len(feature_names)} does not match coefficient length {coef_1d.shape[0]}"
+            f"feature_names length {len(feature_names)} does not "
+            f"match coefficient length {coef_1d.shape[0]}"
         )
 
     pairs = list(zip(feature_names, coef_1d.tolist()))
@@ -286,7 +287,8 @@ def compute_permutation_importance(
 
     if len(feature_names) != X.shape[1]:
         raise ValueError(
-            f"feature_names length {len(feature_names)} does not match X.shape[1]={X.shape[1]}"
+            f"feature_names length {len(feature_names)} does not match "
+            f"X.shape[1]={X.shape[1]}"
         )
 
     result = permutation_importance(

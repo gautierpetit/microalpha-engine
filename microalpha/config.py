@@ -90,7 +90,14 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
 
     return ExperimentConfig(
         dataset=DatasetConfig(
-            tickers=[TickerConfig(**ticker) for ticker in raw_tickers],
+            tickers=[
+                TickerConfig(
+                    symbol=ticker["symbol"],
+                    message_csv=Path(ticker["message_csv"]),
+                    orderbook_csv=Path(ticker["orderbook_csv"]),
+                )
+                for ticker in raw_tickers
+            ],
             levels=raw_dataset["levels"],
             price_scale=raw_dataset["price_scale"],
         ),

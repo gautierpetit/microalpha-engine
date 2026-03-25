@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 
@@ -112,5 +112,17 @@ def load_experiment_config(path: str | Path) -> ExperimentConfig:
     )
 
 
-def config_to_dict(cfg: ExperimentConfig) -> dict:
-    return asdict(cfg)
+def _serialize_for_json(obj: Any) -> Any:
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {k: _serialize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_serialize_for_json(v) for v in obj]
+    if isinstance(obj, tuple):
+        return [_serialize_for_json(v) for v in obj]
+    return obj
+
+
+def config_to_dict(cfg: ExperimentConfig) -> dict[str, Any]:
+    return _serialize_for_json(asdict(cfg))

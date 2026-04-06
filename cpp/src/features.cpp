@@ -1,7 +1,9 @@
 #include "microalpha/features.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 
 namespace microalpha {
 namespace {
@@ -16,6 +18,90 @@ inline double safe_divide(const double num, const double den) {
     }
     return num / den;
 }
+
+struct RollingSum {
+    explicit RollingSum(const std::size_t window) : window(window), values(window, 0.0) {
+        if (window == 0) {
+            throw std::invalid_argument("RollingSum window must be > 0");
+        }
+    }
+
+    double push(const double x) {
+        if (count < window) {
+            values[count] = x;
+            sum += x;
+            ++count;
+            return sum;
+        }
+
+        const std::size_t pos = index % window;
+        sum -= values[pos];
+        values[pos] = x;
+        sum += x;
+        ++index;
+        return sum;
+    }
+
+    std::size_t window;
+    std::vector<double> values;
+    double sum = 0.0;
+    std::size_t count = 0;
+    std::size_t index = 0;
+};
+
+
+struct RollingSampleStd {
+    explicit RollingSampleStd(const std::size_t window) : window(window), values(window, 0.0) {
+        if (window == 0) {
+            throw std::invalid_argument("RollingSampleStd window must be > 0");
+        }
+    }
+
+    double push(const double x) {
+        if (count < window) {
+            values[count] = x;
+            sum += x;
+            sumsq += x * x;
+            ++count;
+        } else {
+            const std::size_t pos = index % window;
+            const double old = values[pos];
+            sum -= old;
+            sumsq -= old * old;
+
+            values[pos] = x;
+            sum += x;
+            sumsq += x * x;
+            ++index;
+        }
+
+        const std::size_t n = std::min(count, window);
+        if (n < 2) {
+            return 0.0;
+        }
+
+        const double mean = sum / static_cast<double>(n);
+        double ss = sumsq - static_cast<double>(n) * mean * mean;
+
+        // Numerical guard
+        if (ss < 0.0 && std::abs(ss) < 1e-12) {
+            ss = 0.0;
+        }
+        if (ss < 0.0) {
+            throw std::runtime_error("Negative rolling sum-of-squares encountered");
+        }
+
+        const double var = ss / static_cast<double>(n - 1);  // sample variance, ddof=1
+        return std::sqrt(var);
+    }
+
+    std::size_t window;
+    std::vector<double> values;
+    double sum = 0.0;
+    double sumsq = 0.0;
+    std::size_t count = 0;
+    std::size_t index = 0;
+};
 
 inline double compute_best_level_ofi(
     const double* bid_prices,
@@ -180,8 +266,6 @@ FeatureMatrix compute_features_series(
         throw std::invalid_argument("intensity_window_seconds must be > 0");
     }
 
-    // Step 1A target contract:
-    // 8 core features + 6 temporal features = 14 columns.
     constexpr std::size_t n_features = 14;
 
     FeatureMatrix out;
@@ -189,13 +273,13 @@ FeatureMatrix compute_features_series(
     out.n_cols = n_features;
     out.data.resize(n_rows * n_features, 0.0);
 
-    (void)midprice;
+    RollingSum ofi_sum_raw(ofi_window_raw);
+    RollingSum ofi_norm_sum_1(ofi_norm_window_1);
+    RollingSum ofi_norm_sum_2(ofi_norm_window_2);
+    RollingSum ofi_norm_sum_3(ofi_norm_window_3);
+    RollingSampleStd mid_return_std(vol_window);
+
     (void)timestamps;
-    (void)ofi_window_raw;
-    (void)ofi_norm_window_1;
-    (void)ofi_norm_window_2;
-    (void)ofi_norm_window_3;
-    (void)vol_window;
     (void)intensity_window_seconds;
 
     for (std::size_t t = 0; t < n_rows; ++t) {
@@ -236,7 +320,17 @@ FeatureMatrix compute_features_series(
             bid_prices, bid_sizes, ask_prices, ask_sizes, t, levels
         );
 
-        // Existing 8 core features
+        const double ofi_roll_sum = ofi_sum_raw.push(ofi_best);
+        const double ofi_norm_roll_sum_1 = ofi_norm_sum_1.push(ofi_best_norm);
+        const double ofi_norm_roll_sum_2 = ofi_norm_sum_2.push(ofi_best_norm);
+        const double ofi_norm_roll_sum_3 = ofi_norm_sum_3.push(ofi_best_norm);
+
+        double mid_return = 0.0;
+        if (t > 0) {
+            mid_return = midprice[t] - midprice[t - 1];
+        }
+        const double midprice_vol = mid_return_std.push(mid_return);
+
         out.data[base + 0] = ofi_best;
         out.data[base + 1] = ofi_best_norm;
         out.data[base + 2] = qi_best;
@@ -246,19 +340,12 @@ FeatureMatrix compute_features_series(
         out.data[base + 6] = spread;
         out.data[base + 7] = microprice_dev;
 
-        // Step 1A placeholders for temporal features:
-        // 8  -> ofi_roll_sum_50
-        // 9  -> ofi_best_norm_roll_sum_10
-        // 10 -> ofi_best_norm_roll_sum_50
-        // 11 -> ofi_best_norm_roll_sum_100
-        // 12 -> midprice_vol_50
-        // 13 -> event_intensity_1s
-        out.data[base + 8] = 0.0;
-        out.data[base + 9] = 0.0;
-        out.data[base + 10] = 0.0;
-        out.data[base + 11] = 0.0;
-        out.data[base + 12] = 0.0;
-        out.data[base + 13] = 0.0;
+        out.data[base + 8] = ofi_roll_sum;
+        out.data[base + 9] = ofi_norm_roll_sum_1;
+        out.data[base + 10] = ofi_norm_roll_sum_2;
+        out.data[base + 11] = ofi_norm_roll_sum_3;
+        out.data[base + 12] = midprice_vol;
+        out.data[base + 13] = 0.0;  // Step 1B: event_intensity_1s still pending
     }
 
     return out;

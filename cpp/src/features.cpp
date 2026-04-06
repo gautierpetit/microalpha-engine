@@ -143,10 +143,22 @@ FeatureMatrix compute_features_series(
     const double* bid_sizes,
     const double* ask_prices,
     const double* ask_sizes,
+    const double* midprice,
+    const double* timestamps,
     const std::size_t n_rows,
-    const std::size_t levels
+    const std::size_t levels,
+    const std::size_t ofi_window_raw,
+    const std::size_t ofi_norm_window_1,
+    const std::size_t ofi_norm_window_2,
+    const std::size_t ofi_norm_window_3,
+    const std::size_t vol_window,
+    const double intensity_window_seconds
 ) {
-    if (bid_prices == nullptr || bid_sizes == nullptr || ask_prices == nullptr || ask_sizes == nullptr) {
+    if (
+        bid_prices == nullptr || bid_sizes == nullptr ||
+        ask_prices == nullptr || ask_sizes == nullptr ||
+        midprice == nullptr || timestamps == nullptr
+    ) {
         throw std::invalid_argument("Null input pointer passed to compute_features_series");
     }
     if (n_rows == 0) {
@@ -155,13 +167,36 @@ FeatureMatrix compute_features_series(
     if (levels < 10) {
         throw std::invalid_argument("levels must be >= 10 for this feature set");
     }
+    if (ofi_window_raw == 0) {
+        throw std::invalid_argument("ofi_window_raw must be > 0");
+    }
+    if (ofi_norm_window_1 == 0 || ofi_norm_window_2 == 0 || ofi_norm_window_3 == 0) {
+        throw std::invalid_argument("ofi_norm windows must be > 0");
+    }
+    if (vol_window == 0) {
+        throw std::invalid_argument("vol_window must be > 0");
+    }
+    if (intensity_window_seconds <= 0.0) {
+        throw std::invalid_argument("intensity_window_seconds must be > 0");
+    }
 
-    constexpr std::size_t n_features = 8;
+    // Step 1A target contract:
+    // 8 core features + 6 temporal features = 14 columns.
+    constexpr std::size_t n_features = 14;
 
     FeatureMatrix out;
     out.n_rows = n_rows;
     out.n_cols = n_features;
     out.data.resize(n_rows * n_features, 0.0);
+
+    (void)midprice;
+    (void)timestamps;
+    (void)ofi_window_raw;
+    (void)ofi_norm_window_1;
+    (void)ofi_norm_window_2;
+    (void)ofi_norm_window_3;
+    (void)vol_window;
+    (void)intensity_window_seconds;
 
     for (std::size_t t = 0; t < n_rows; ++t) {
         const std::size_t base = t * n_features;
@@ -201,6 +236,7 @@ FeatureMatrix compute_features_series(
             bid_prices, bid_sizes, ask_prices, ask_sizes, t, levels
         );
 
+        // Existing 8 core features
         out.data[base + 0] = ofi_best;
         out.data[base + 1] = ofi_best_norm;
         out.data[base + 2] = qi_best;
@@ -209,6 +245,20 @@ FeatureMatrix compute_features_series(
         out.data[base + 5] = di_10;
         out.data[base + 6] = spread;
         out.data[base + 7] = microprice_dev;
+
+        // Step 1A placeholders for temporal features:
+        // 8  -> ofi_roll_sum_50
+        // 9  -> ofi_best_norm_roll_sum_10
+        // 10 -> ofi_best_norm_roll_sum_50
+        // 11 -> ofi_best_norm_roll_sum_100
+        // 12 -> midprice_vol_50
+        // 13 -> event_intensity_1s
+        out.data[base + 8] = 0.0;
+        out.data[base + 9] = 0.0;
+        out.data[base + 10] = 0.0;
+        out.data[base + 11] = 0.0;
+        out.data[base + 12] = 0.0;
+        out.data[base + 13] = 0.0;
     }
 
     return out;

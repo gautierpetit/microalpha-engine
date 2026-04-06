@@ -103,6 +103,34 @@ struct RollingSampleStd {
     std::size_t index = 0;
 };
 
+inline std::vector<double> compute_event_intensity(
+    const double* timestamps,
+    const std::size_t n_rows,
+    const double window_seconds
+) {
+    if (timestamps == nullptr) {
+        throw std::invalid_argument("timestamps must not be null");
+    }
+    if (window_seconds <= 0.0) {
+        throw std::invalid_argument("window_seconds must be > 0");
+    }
+
+    std::vector<double> intensity(n_rows, 0.0);
+
+    std::size_t left = 0;
+    for (std::size_t right = 0; right < n_rows; ++right) {
+        const double t_right = timestamps[right];
+
+        while (left < right && (t_right - timestamps[left]) > window_seconds) {
+            ++left;
+        }
+
+        intensity[right] = static_cast<double>(right - left + 1);
+    }
+
+    return intensity;
+}
+
 inline double compute_best_level_ofi(
     const double* bid_prices,
     const double* bid_sizes,
@@ -279,8 +307,9 @@ FeatureMatrix compute_features_series(
     RollingSum ofi_norm_sum_3(ofi_norm_window_3);
     RollingSampleStd mid_return_std(vol_window);
 
-    (void)timestamps;
-    (void)intensity_window_seconds;
+    const std::vector<double> event_intensity = compute_event_intensity(
+        timestamps, n_rows, intensity_window_seconds
+    );
 
     for (std::size_t t = 0; t < n_rows; ++t) {
         const std::size_t base = t * n_features;
@@ -345,7 +374,7 @@ FeatureMatrix compute_features_series(
         out.data[base + 10] = ofi_norm_roll_sum_2;
         out.data[base + 11] = ofi_norm_roll_sum_3;
         out.data[base + 12] = midprice_vol;
-        out.data[base + 13] = 0.0;  // Step 1B: event_intensity_1s still pending
+        out.data[base + 13] = event_intensity[t]; 
     }
 
     return out;

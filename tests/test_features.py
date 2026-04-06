@@ -42,8 +42,8 @@ def test_compute_features_shape_matches_make_feature_names(monkeypatch) -> None:
     )
 
     def fake_compute_features_series(**kwargs):
-        # Return 8 core columns exactly as the C++ extension promises
-        return np.zeros((n, 8), dtype=np.float64)
+        # Step 1A: the C++ extension now promises the full 14-column feature matrix.
+        return np.zeros((n, 14), dtype=np.float64)
 
     monkeypatch.setattr(
         "microalpha.features.compute_features_series",

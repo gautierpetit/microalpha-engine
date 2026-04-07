@@ -1,1 +1,1 @@
-__all__ = []
+"""MicroAlpha Engine package."""

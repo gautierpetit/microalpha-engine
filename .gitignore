@@ -13,16 +13,19 @@ __pycache__/
 
 # Data
 data/raw/*
-data/processed/*
+
 
 # Research
-docs/research/*
+docs/research/
 artifacts/
 
 # Build
 build/
 dist/
 *.egg-info/
+
+# ML models
+*.joblib
 
 # C++
 *.o

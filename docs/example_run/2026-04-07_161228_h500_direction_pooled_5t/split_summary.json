@@ -1,0 +1,18 @@
+{
+  "split_idx": -1,
+  "train_fraction": 0.7,
+  "n_train": 1260547,
+  "n_test": 540238,
+  "train_pos_rate": 0.46560818438344626,
+  "test_pos_rate": 0.46646292930153005,
+  "task_name": "direction",
+  "pooled": true,
+  "n_tickers": 5,
+  "symbols": [
+    "AAPL",
+    "AMZN",
+    "GOOG",
+    "INTC",
+    "MSFT"
+  ]
+}

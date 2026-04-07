@@ -1,0 +1,81 @@
+{
+  "task_name": "direction",
+  "label_mode": "binary_drop_ties",
+  "tickers": [
+    {
+      "symbol": "AAPL",
+      "n_test": 118731,
+      "test_pos_rate": 0.45638460048344576,
+      "logistic": {
+        "model_name": "logistic",
+        "accuracy": 0.5207906949322418,
+        "roc_auc": 0.5174364179583347
+      },
+      "hist_gbdt": {
+        "model_name": "hist_gbdt",
+        "accuracy": 0.5399011210214687,
+        "roc_auc": 0.5347167241303936
+      }
+    },
+    {
+      "symbol": "AMZN",
+      "n_test": 79544,
+      "test_pos_rate": 0.4807025042743639,
+      "logistic": {
+        "model_name": "logistic",
+        "accuracy": 0.5344966307955346,
+        "roc_auc": 0.5435509263922346
+      },
+      "hist_gbdt": {
+        "model_name": "hist_gbdt",
+        "accuracy": 0.540568741828422,
+        "roc_auc": 0.5586798588513044
+      }
+    },
+    {
+      "symbol": "GOOG",
+      "n_test": 43941,
+      "test_pos_rate": 0.44348103138299083,
+      "logistic": {
+        "model_name": "logistic",
+        "accuracy": 0.5523087776791606,
+        "roc_auc": 0.5326760191754019
+      },
+      "hist_gbdt": {
+        "model_name": "hist_gbdt",
+        "accuracy": 0.5473475797091555,
+        "roc_auc": 0.5593726603113712
+      }
+    },
+    {
+      "symbol": "INTC",
+      "n_test": 136326,
+      "test_pos_rate": 0.4918064052345114,
+      "logistic": {
+        "model_name": "logistic",
+        "accuracy": 0.7336824963689978,
+        "roc_auc": 0.8147387638155293
+      },
+      "hist_gbdt": {
+        "model_name": "hist_gbdt",
+        "accuracy": 0.7213590951102504,
+        "roc_auc": 0.8033133533918908
+      }
+    },
+    {
+      "symbol": "MSFT",
+      "n_test": 161696,
+      "test_pos_rate": 0.451736592123491,
+      "logistic": {
+        "model_name": "logistic",
+        "accuracy": 0.6769431525826242,
+        "roc_auc": 0.7317276600234747
+      },
+      "hist_gbdt": {
+        "model_name": "hist_gbdt",
+        "accuracy": 0.6623416782109638,
+        "roc_auc": 0.7351741756461847
+      }
+    }
+  ]
+}

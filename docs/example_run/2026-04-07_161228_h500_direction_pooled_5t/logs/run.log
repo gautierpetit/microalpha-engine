@@ -1,0 +1,26 @@
+2026-04-07 16:12:28 | INFO | microalpha | Starting experiment run: 2026-04-07_161228_h500_direction_pooled_5t
+2026-04-07 16:12:28 | INFO | microalpha | Task: direction
+2026-04-07 16:12:28 | INFO | microalpha | Tickers: ['AAPL', 'AMZN', 'GOOG', 'INTC', 'MSFT']
+2026-04-07 16:12:28 | INFO | microalpha | Building dataset for AAPL
+2026-04-07 16:12:30 | INFO | microalpha | Built dataset for AAPL: n_events=400391, X shape=(395769, 14), y shape=(395769,), tie_rate=0.010308, move_rate=0.989692
+2026-04-07 16:12:30 | INFO | microalpha | Building dataset for AMZN
+2026-04-07 16:12:32 | INFO | microalpha | Built dataset for AMZN: n_events=269748, X shape=(265145, 14), y shape=(265145,), tie_rate=0.015239, move_rate=0.984761
+2026-04-07 16:12:32 | INFO | microalpha | Building dataset for GOOG
+2026-04-07 16:12:33 | INFO | microalpha | Built dataset for GOOG: n_events=147916, X shape=(146467, 14), y shape=(146467,), tie_rate=0.006438, move_rate=0.993562
+2026-04-07 16:12:33 | INFO | microalpha | Building dataset for INTC
+2026-04-07 16:12:36 | INFO | microalpha | Built dataset for INTC: n_events=624040, X shape=(454419, 14), y shape=(454419,), tie_rate=0.271227, move_rate=0.728773
+2026-04-07 16:12:36 | INFO | microalpha | Building dataset for MSFT
+2026-04-07 16:12:40 | INFO | microalpha | Built dataset for MSFT: n_events=668765, X shape=(538985, 14), y shape=(538985,), tie_rate=0.193456, move_rate=0.806544
+2026-04-07 16:12:41 | INFO | microalpha | Saved dataset and feature diagnostics
+2026-04-07 16:12:41 | INFO | microalpha | Pooled split summary: {'split_idx': -1, 'train_fraction': 0.7, 'n_train': 1260547, 'n_test': 540238, 'train_pos_rate': 0.46560818438344626, 'test_pos_rate': 0.46646292930153005, 'task_name': 'direction', 'pooled': True, 'n_tickers': 5, 'symbols': ['AAPL', 'AMZN', 'GOOG', 'INTC', 'MSFT']}
+2026-04-07 16:12:42 | INFO | microalpha | Trained logistic regression
+2026-04-07 16:12:54 | INFO | microalpha | Trained HistGradientBoostingClassifier
+2026-04-07 16:12:54 | INFO | microalpha | Saved trained models
+2026-04-07 16:12:57 | INFO | microalpha | Metrics: {'task_name': 'direction', 'logistic': {'model_name': 'logistic', 'accuracy': 0.6258315779341698, 'roc_auc': 0.6792160244497703}, 'hist_gbdt': {'model_name': 'hist_gbdt', 'accuracy': 0.6230420666447011, 'roc_auc': 0.6855423553956467}}
+2026-04-07 16:12:57 | INFO | microalpha | Saved pooled per-ticker metrics
+2026-04-07 16:14:52 | INFO | microalpha | Saved permutation importance artifacts
+2026-04-07 16:14:52 | INFO | microalpha | Saved logistic coefficients
+2026-04-07 16:14:54 | INFO | microalpha | Saved evaluation plots
+2026-04-07 16:14:55 | INFO | microalpha | Saved comparison charts
+2026-04-07 16:14:55 | INFO | microalpha | Saved feature importance plots
+2026-04-07 16:14:55 | INFO | microalpha | Experiment complete: 2026-04-07_161228_h500_direction_pooled_5t

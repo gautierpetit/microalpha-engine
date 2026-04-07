@@ -1,0 +1,77 @@
+{
+  "model_name": "hist_gbdt",
+  "scoring": "roc_auc",
+  "n_repeats": 10,
+  "importances": [
+    {
+      "feature": "microprice_deviation",
+      "importance_mean": 0.05789904849853156,
+      "importance_std": 0.00034462328871862655
+    },
+    {
+      "feature": "ofi_roll_sum_50",
+      "importance_mean": 0.017800560624546147,
+      "importance_std": 0.00023920877852924243
+    },
+    {
+      "feature": "queue_imbalance_best",
+      "importance_mean": 0.017219520327863967,
+      "importance_std": 0.00030151185218815367
+    },
+    {
+      "feature": "midprice_vol_50",
+      "importance_mean": 0.0157976696973114,
+      "importance_std": 0.00036942580117570845
+    },
+    {
+      "feature": "depth_imbalance_3",
+      "importance_mean": 0.00964661538568149,
+      "importance_std": 0.00011711306307189001
+    },
+    {
+      "feature": "depth_imbalance_5",
+      "importance_mean": 0.008207576472601485,
+      "importance_std": 0.00022610430291468704
+    },
+    {
+      "feature": "spread",
+      "importance_mean": 0.008144194908715829,
+      "importance_std": 0.00020042837831052394
+    },
+    {
+      "feature": "ofi_best_norm_roll_sum_100",
+      "importance_mean": 0.005802350291131608,
+      "importance_std": 0.00019045906178414345
+    },
+    {
+      "feature": "depth_imbalance_10",
+      "importance_mean": 0.005187039871774157,
+      "importance_std": 0.0002015962331400815
+    },
+    {
+      "feature": "ofi_best_norm_roll_sum_10",
+      "importance_mean": 0.0043220481312447375,
+      "importance_std": 0.000137264705700267
+    },
+    {
+      "feature": "ofi_best",
+      "importance_mean": 0.0017198811037751004,
+      "importance_std": 3.485123315979118e-05
+    },
+    {
+      "feature": "ofi_best_norm_roll_sum_50",
+      "importance_mean": 0.0011268999450701922,
+      "importance_std": 6.270979693150192e-05
+    },
+    {
+      "feature": "ofi_best_norm",
+      "importance_mean": -0.00014513543868034385,
+      "importance_std": 2.157216760343466e-05
+    },
+    {
+      "feature": "event_intensity_1s",
+      "importance_mean": -0.00105213268110933,
+      "importance_std": 0.00018483974377340897
+    }
+  ]
+}

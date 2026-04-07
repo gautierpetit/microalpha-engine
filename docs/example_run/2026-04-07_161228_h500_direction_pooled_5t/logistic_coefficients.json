@@ -1,0 +1,60 @@
+{
+  "coefficients": [
+    {
+      "feature": "queue_imbalance_best",
+      "coefficient": 0.5382598614369777
+    },
+    {
+      "feature": "microprice_deviation",
+      "coefficient": -0.34072106772157934
+    },
+    {
+      "feature": "ofi_roll_sum_50",
+      "coefficient": 0.18538954850450667
+    },
+    {
+      "feature": "depth_imbalance_10",
+      "coefficient": 0.06686188724778498
+    },
+    {
+      "feature": "depth_imbalance_5",
+      "coefficient": -0.05901729647398706
+    },
+    {
+      "feature": "ofi_best",
+      "coefficient": 0.04499925373195453
+    },
+    {
+      "feature": "spread",
+      "coefficient": -0.02572125173532676
+    },
+    {
+      "feature": "midprice_vol_50",
+      "coefficient": 0.021189265191909414
+    },
+    {
+      "feature": "depth_imbalance_3",
+      "coefficient": -0.020032765450059997
+    },
+    {
+      "feature": "ofi_best_norm_roll_sum_10",
+      "coefficient": 0.018678945167920843
+    },
+    {
+      "feature": "ofi_best_norm_roll_sum_50",
+      "coefficient": 0.0177313133460174
+    },
+    {
+      "feature": "event_intensity_1s",
+      "coefficient": -0.013196226669001691
+    },
+    {
+      "feature": "ofi_best_norm",
+      "coefficient": -0.005766187120534682
+    },
+    {
+      "feature": "ofi_best_norm_roll_sum_100",
+      "coefficient": -0.004422800651688231
+    }
+  ]
+}

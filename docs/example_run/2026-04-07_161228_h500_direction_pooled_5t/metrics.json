@@ -1,0 +1,13 @@
+{
+  "task_name": "direction",
+  "logistic": {
+    "model_name": "logistic",
+    "accuracy": 0.6258315779341698,
+    "roc_auc": 0.6792160244497703
+  },
+  "hist_gbdt": {
+    "model_name": "hist_gbdt",
+    "accuracy": 0.6230420666447011,
+    "roc_auc": 0.6855423553956467
+  }
+}

@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
     accuracy_score,
     auc,
     confusion_matrix,
@@ -213,31 +214,30 @@ def plot_confusion_matrix_comparison(
     hist_gbdt_result: EvaluationResult,
     out_path: Path,
 ) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
 
-    cm_log = logistic_result.confusion_matrix
-    axes[0].set_title("Logistic Regression")
-    axes[0].set_xlabel("Predicted label")
-    axes[0].set_ylabel("True label")
-    axes[0].set_xticks([0, 1])
-    axes[0].set_yticks([0, 1])
-    for i in range(cm_log.shape[0]):
-        for j in range(cm_log.shape[1]):
-            axes[0].text(j, i, str(cm_log[i, j]), ha="center", va="center")
+    plots = [
+        (axes[0], logistic_result, "Logistic Regression"),
+        (axes[1], hist_gbdt_result, "HistGradientBoosting"),
+    ]
 
-    cm_gbdt = hist_gbdt_result.confusion_matrix
-    axes[1].set_title("HistGradientBoosting")
-    axes[1].set_xlabel("Predicted label")
-    axes[1].set_ylabel("True label")
-    axes[1].set_xticks([0, 1])
-    axes[1].set_yticks([0, 1])
-    for i in range(cm_gbdt.shape[0]):
-        for j in range(cm_gbdt.shape[1]):
-            axes[1].text(j, i, str(cm_gbdt[i, j]), ha="center", va="center")
+    for ax, result, title in plots:
+        display = ConfusionMatrixDisplay(
+            confusion_matrix=result.confusion_matrix,
+            display_labels=[0, 1],
+        )
+        display.plot(
+            ax=ax,
+            values_format="d",
+            colorbar=False,
+        )
+        ax.set_title(title)
+        ax.set_xlabel("Predicted label")
+        ax.set_ylabel("True label")
 
-    fig.suptitle("Confusion Matrix Comparison")
+    fig.suptitle("Confusion Matrix Comparison", y=1.02)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 

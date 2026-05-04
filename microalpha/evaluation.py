@@ -54,7 +54,7 @@ def evaluate_binary_classifier(
 
     acc = float(accuracy_score(y_true, y_pred))
     auc = float(roc_auc_score(y_true, y_proba))
-    cm = confusion_matrix(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
 
     return EvaluationResult(
         model_name=model_name,

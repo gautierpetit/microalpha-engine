@@ -28,6 +28,8 @@ Main takeaways:
   - short-horizon accumulated OFI
 - All features are computed in C++, exposed to Python, and used in a reproducible research pipeline.
 
+Full report available here: [report PDF](docs/MicroAlpha%20Engine%20-%20Report.pdf)
+
 A preserved example run is available under:
 
 ```docs/example_run/2026-04-07_161228_h500_direction_pooled_5t/```
@@ -107,7 +109,7 @@ The nonlinear tree model extracts additional value from:
 
 ### 4. Predictability is cross-sectionally heterogeneous
 
-INTC and MSFT are structurally easier than the other names in this sample and at this horizon.
+INTC and MSFT are materially easier to predict than the other names in this sample and at this horizon.
 The project carefully narrows down what this does not come from:
 - not obvious leakage
 - not purely movement prediction
@@ -396,10 +398,10 @@ Each run saves:
 
 ```
 microalpha-engine/
-├── artifacts/                # GENERATED: per-run artifacts
+├── artifacts/                          # GENERATED: per-run artifacts
 ├── config/
-│   └── experiment.yaml       # main experiment configuration
-├── cpp/                      # C++ feature engine + bindings build
+│   └── experiment.yaml                 # main experiment configuration
+├── cpp/                                # C++ feature engine + bindings build
 │   ├── include/
 │   │   ├── microalpha/
 │   │   │   └── features.hpp
@@ -407,10 +409,11 @@ microalpha-engine/
 │   │   ├── bindings.cpp
 │   │   └── features.cpp
 │   └── CMakeLists.txt
-├── data/                     # local input data (not distributed)
+├── data/                               # local input data (not distributed)
 ├── docs/
-│   └── example_run/            # preserved example run artifacts
-├── microalpha/               # Python package
+│   ├── MicroAlpha Engine - Report.pdf
+│   └── example_run/                    # preserved example run artifacts
+├── microalpha/                         # Python package
 │   ├── config.py
 │   ├── diagnostics.py
 │   ├── evaluation.py
@@ -421,9 +424,9 @@ microalpha-engine/
 │   ├── pipeline.py
 │   └── utils.py
 ├── scripts/
-│   ├── build_cpp.ps1         # script to build C++ module
-│   └── run_experiment.py     # main orchestrator
-├── tests/                    # automated tests
+│   ├── build_cpp.ps1                   # script to build C++ module
+│   └── run_experiment.py               # main orchestrator
+├── tests/                              # automated tests
 ├── Dockerfile
 ├── LICENSE
 ├── pyproject.toml
@@ -437,7 +440,7 @@ microalpha-engine/
 This repository does not include raw LOBSTER market data.  
 This project was built using free [LOBSTER](https://data.lobsterdata.com/info/DataSamples.php) sample data for AAPL, AMZN, GOOG, INTC, and MSFT at 10 depth levels.
 
-To run the full pipeline, you must supply your own data in the expected directory structure under `data/raw/....`
+To run the full pipeline, you must supply your own data in the expected directory structure under `data/raw/...`
 
 Code licensing and data licensing are separate issues.  
 This repo distributes the code and example artifacts, not the raw proprietary dataset.
@@ -448,6 +451,8 @@ This repo distributes the code and example artifacts, not the raw proprietary da
 
 This project is licensed under the **BSD 3-Clause License**.  
 See the `LICENSE` file for details.
+
+The [report PDF](docs/MicroAlpha%20Engine%20-%20Report.pdf) remains licensed separately under the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC BY-NC-ND 4.0).
 
 ## Contact
 
